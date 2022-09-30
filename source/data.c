@@ -50,8 +50,9 @@ struct data_t *data_dup(struct data_t *data){
 
     data2->datasize = data->datasize;
     data2->data = malloc(data->datasize);
+
+    memcpy(data2->data, data->data, data->datasize);
     
-    //memcpy(data2->data, data->data, data->datasize);
     return data2;
 }
 
