@@ -4,54 +4,57 @@
 
 #include "../include/entry.h"
 
-/* Esta estrutura define o par {chave, valor} para a árvore
- */
-// struct entry_t {
-// 	char *key;	/* string, cadeia de caracteres terminada por '\0' */
-// 	struct data_t *value; /* Bloco de dados */
-// };
-
 /* Função que cria uma entry, reservando a memória necessária para a
  * estrutura e inicializando os campos key e value, respetivamente, com a
  * string e o bloco de dados passados como parâmetros, sem reservar
  * memória para estes campos.
-
  */
 struct entry_t *entry_create(char *key, struct data_t *data){
     struct entry_t *entry = (struct entry_t *) malloc(sizeof(struct entry_t));
-    if(entry == NULL) return NULL;
-    entry->key = strdup(key);
-    if(entry->key == NULL){
-        free(entry);
-        return NULL;
-    }
-    entry->value = data_dup(data);
-    if(entry->value == NULL){
-        free(entry->key);
-        free(entry);
-        return NULL;
-    }
+
+    if (entry == NULL) return NULL;
+
+    entry->key = key;
+    entry->value = data;
+
     return entry;
 }
 
 /* Função que elimina uma entry, libertando a memória por ela ocupada
  */
 void entry_destroy(struct entry_t *entry){
+    if (entry == NULL) return;
 
+    free(entry->key);
+    data_destroy(entry->value);
+    free(entry);
 }
 
 /* Função que duplica uma entry, reservando a memória necessária para a
  * nova estrutura.
  */
 struct entry_t *entry_dup(struct entry_t *entry){
+    if(entry == NULL) return NULL;
 
+    struct entry_t *entry2 = (struct entry_t *) malloc(sizeof(struct entry_t));
+
+    entry2->key = strdup(entry->key);
+    entry2->value = data_dup(entry->value);
+
+    return entry2;
 }
 
 /* Função que substitui o conteúdo de uma entrada entry_t.
 *  Deve assegurar que destroi o conteúdo antigo da mesma.
 */
 void entry_replace(struct entry_t *entry, char *new_key, struct data_t *new_value){
+    if(entry == NULL) return;
 
+    free(entry->key);
+    data_destroy(entry->value);
+
+    entry->key = new_key;
+    entry->value = new_value;
 }
 
 /* Função que compara duas entradas e retorna a ordem das mesmas.
@@ -59,5 +62,9 @@ void entry_replace(struct entry_t *entry, char *new_key, struct data_t *new_valu
 *  A função devolve 0 se forem iguais, -1 se entry1<entry2, e 1 caso contrário.
 */
 int entry_compare(struct entry_t *entry1, struct entry_t *entry2){
+    if(entry1 == NULL || entry2 == NULL) return -1;
 
+    if (strcmp(entry1->key, entry2->key) == 0) return 0;
+    if (strcmp(entry1->key, entry2->key) < 0) return -1;
+    return 1;
 }
