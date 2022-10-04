@@ -12,7 +12,7 @@
  * Em caso de erro retorna NULL.
  */
 struct tree_t *tree_create(){
-    struct tree_t *tree = malloc(sizeof(struct tree_t));
+    struct tree_t *tree = (struct tree_t*) malloc(sizeof(struct tree_t));
     if(tree == NULL) return NULL;
     tree->node = NULL;
     tree->left = NULL;
@@ -40,37 +40,37 @@ void tree_destroy(struct tree_t *tree){
  */
 int tree_put(struct tree_t *tree, char *key, struct data_t *value){
     if(tree == NULL || key == NULL || value == NULL) return -1;
-    if(tree->node == NULL){
-        tree->node = entry_create(key, value);
+    if(tree->node == NULL){                     // Se a árvore estiver vazia
+        tree->node = entry_create(key, value);  // Cria uma nova entrada
         if(tree->node == NULL) return -1;       // Falha na criação da entry
         return 0;                               // Sucesso
     }
 
-    int cmp = strcmp(key, tree->node->key);     // Compara a key com a key do nó
+    //compare using entry_compare()
+    int comp = entry_compare(tree->node, entry_create(key, value));
 
-    if(cmp == 0){                               // Se forem iguais
-        entry_destroy(tree->node);              // Destroi a entry
-        tree->node = entry_create(key, value);  // Cria uma nova entry
-        if(tree->node == NULL) return -1;       // Falha na criação da entry
-        return 0;                               // Sucesso
+    if(comp == 0){
+        entry_replace(tree->node, key, value);
+        return 0;
     }
-
-    if(cmp < 0){                                // Se a key for menor que a key do nó
-        if(tree->left == NULL){                 // Se o filho esquerdo for nulo
-            tree->left = tree_create();         // Cria um novo nó
-            if(tree->left == NULL) return -1;   // Falha na criação da entry
+    if(comp == -1){
+        if(tree->left == NULL){
+            tree->left = tree_create();
+            if(tree->left == NULL) return -1;
         }
-        return tree_put(tree->left, key, value);    // Chama a função para o filho esquerdo
+        return tree_put(tree->left, key, value);
+    }
+    
+    if(comp == 1){
+        if(tree->right == NULL){
+            tree->right = tree_create();
+            if(tree->right == NULL) return -1;
+        }
+        return tree_put(tree->right, key, value);
     }
 
-    if(cmp > 0){                                // Se a key for maior que a key do nó
-        if(tree->right == NULL){                // Se o filho direito for nulo
-            tree->right = tree_create();        // Cria um novo nó
-            if(tree->right == NULL) return -1;  // Falha na criação da entry
-        }
-        return tree_put(tree->right, key, value); // Chama a função para o filho direito
-    }
-    return -1;                                // Erro
+    return -1;
+    
 }
 
 /* Função para obter da árvore o valor associado à chave key.
