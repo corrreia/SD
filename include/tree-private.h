@@ -2,10 +2,11 @@
 #define _TREE_PRIVATE_H
 
 #include "tree.h"
+#include "entry.h"
 
 struct tree_t {
-	/** a preencher pelo grupo */
+	struct entry_t *node;
+	struct tree_t *left, *right;
 };
-
 
 #endif

@@ -2,8 +2,9 @@
 #define _TREE_H /* Módulo tree */
 
 #include "data.h"
+#include "tree.h"
 
-struct tree_t; /* A definir pelo grupo em tree-private.h */
+//struct tree_t; /* A definir pelo grupo em tree-private.h */
 
 /* Função para criar uma nova árvore tree vazia.
  * Em caso de erro retorna NULL.
