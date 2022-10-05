@@ -18,6 +18,6 @@ int keyArray_to_buffer(char **keys, char **keys_buf);
  * cujo espaco em memória deve ser reservado. Devolve NULL
  * em caso de erro.
  */
-char** buffer_to_keyArray(char *keys_buf, int keys_buf_size)
+char** buffer_to_keyArray(char *keys_buf, int keys_buf_size);
 
 #endif

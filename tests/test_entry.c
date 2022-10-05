@@ -1,5 +1,5 @@
-#include "../include/data.h"
-#include "../include/entry.h"
+#include "data.h"
+#include "entry.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -34,10 +34,10 @@ int testDup() {
 	result = entry2 != entry;
 	
 	result = result && (entry->key != entry2->key) &&
-		            (strcmp(entry->key,entry2->key) == 0) && 
-                    (entry->value != entry2->value) &&
-		           	(entry->value->datasize == entry2->value->datasize) &&
-                    (memcmp(entry->value->data, entry2->value->data, entry->value->datasize) == 0);
+		              (strcmp(entry->key,entry2->key) == 0) && 
+                        (entry->value != entry2->value) &&
+		              (entry->value->datasize == entry2->value->datasize) &&
+                        (memcmp(entry->value->data, entry2->value->data, entry->value->datasize) == 0);
 
 	entry_destroy(entry);
 	entry_destroy(entry2);
@@ -49,7 +49,7 @@ int testDup() {
 /**************************************************************/
 
 int testDestroy(){
-    printf("entry - teste entry_destroy:");
+    printf("Módulo entry -> teste entry_destroy:");
 	entry_destroy(NULL);
     printf(" passou\n");
 	return 1;

@@ -4,7 +4,7 @@
 #include <errno.h>
 #include <assert.h>
 
-#include "../include/data.h"
+#include "data.h"
 
 void pee(const char *msg)
 {
@@ -102,11 +102,10 @@ int testCreate3() {
 
 	result = result &&
 		 ((strcmp(data->data, data_p) == 0) && (data->datasize == data_size));
-	
+
 	data_destroy(data);
 
 	printf("data - testCreate3: %s\n",result?"passou":"não passou");
-	//printf("%d", result);
 	return result;
 }
 

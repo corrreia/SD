@@ -14,9 +14,8 @@ struct entry_t *entry_create(char *key, struct data_t *data){
 
     if (entry == NULL) return NULL;
 
-    entry->key = key;
+    entry->key = key;  
     entry->value = data;
-
     return entry;
 }
 
@@ -62,7 +61,7 @@ void entry_replace(struct entry_t *entry, char *new_key, struct data_t *new_valu
 *  A função devolve 0 se forem iguais, -1 se entry1<entry2, e 1 caso contrário.
 */
 int entry_compare(struct entry_t *entry1, struct entry_t *entry2){
-    if(entry1 == NULL || entry2 == NULL) return -1;
+    //if(entry1 == NULL || entry2 == NULL) return -1;
 
     if (strcmp(entry1->key, entry2->key) == 0) return 0;
     if (strcmp(entry1->key, entry2->key) < 0) return -1;
