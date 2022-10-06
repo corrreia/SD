@@ -12,23 +12,25 @@
  * buffer alocado ou -1 em caso de erro.
  */
 int keyArray_to_buffer(char **keys, char **keys_buf){
-    int i, size = 0;
-    for(i = 0; keys[i] != NULL; i++){
-        size += strlen(keys[i]) + 1;
-    }
+    // if(keys == NULL || keys_buf == NULL) return -1;
 
-    *keys_buf = malloc(size);
-    if(*keys_buf == NULL){
-        return -1;
-    }
-
-    int offset = 0;
-    for(i = 0; keys[i] != NULL; i++){
-        strcpy(*keys_buf + offset, keys[i]);
-        offset += strlen(keys[i]) + 1;
-    }
-
-    return size;
+    // keys_buf = malloc(sizeof(keys));
+    // if(keys_buf == NULL) return -1;
+    
+    // int i = 0;
+    // while(keys[i] != NULL){
+    //     strcat(*keys_buf, keys[i]);
+    //     i++;
+    // }
+    // return sizeof(keys_buf);
+    if(keys == NULL || keys_buf == NULL) return -1;
+    int size = htonl(sizeof(keys));                     //tamanho do array de keys em bytes (network byte order)
+    int i = sizeof(int) + size;
+    *keys_buf = malloc(i);
+    if(*keys_buf == NULL) return -1;
+    memcpy(*keys_buf, &size, sizeof(int));
+    memcpy(*keys_buf + sizeof(int), keys, size);
+    return i;
 }
 
 /* De-serializa a mensagem contida em keys_buf, com tamanho
@@ -37,15 +39,13 @@ int keyArray_to_buffer(char **keys, char **keys_buf){
  * em caso de erro.
  */
 char** buffer_to_keyArray(char *keys_buf, int keys_buf_size){
-    int i, offset = 0;
-    char **keys = malloc(sizeof(char*) * (keys_buf_size + 1));
-    if(keys == NULL){
-        return NULL;
-    }
-    for(i = 0; offset < keys_buf_size; i++){
-        keys[i] = keys_buf + offset;
-        offset += strlen(keys[i]) + 1;
-    }
-    keys[i] = NULL;
-    return keys;
+    if (keys_buf == NULL || keys_buf_size < 0) return NULL;
+
+    int size = 0;                               //tamanho do array de strings
+    void *ptr;                                  //ponteiro auxiliar
+    memcpy(&size, keys_buf, sizeof(int));       //copia o tamanho do array de strings para a variavel size
+    ptr = malloc(size);                         //aloca o espaço para o array de strings
+    if(ptr == NULL) return NULL;                //verifica se a alocação foi bem sucedida
+    memcpy(ptr, keys_buf + sizeof(int), size);  //copia o array de strings para o espaço alocado
+    return ptr;                                 //retorna o array de strings
 }

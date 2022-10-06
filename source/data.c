@@ -23,6 +23,7 @@ struct data_t *data_create(int size){
  */
 struct data_t *data_create2(int size, void *data){
     if(size <= 0 || data == NULL) return NULL;
+
     struct data_t *data2 = (struct data_t *) malloc(sizeof(struct data_t));
 
     data2->datasize = size;

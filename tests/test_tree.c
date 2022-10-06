@@ -237,6 +237,12 @@ int testGetKeys() {
 
 /**************************************************************/
 
+int testGetValues() {
+	//TODO
+}
+
+/**************************************************************/
+
 int main() {
 	int score = 0;
 
@@ -256,9 +262,9 @@ int main() {
 	
 	//score += testGetValues();
 
-	printf("teste tree bin: %d/6\n",score);
+	printf("teste tree bin: %d/7\n",score);
 
-    if (score == 6)
+    if (score == 7)
         return 0;
     else
         return -1;

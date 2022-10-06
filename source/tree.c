@@ -191,6 +191,21 @@ int tree_height(struct tree_t *tree){
     return height;
 }
 
+/* Função que liberta toda a memória alocada pela árvore.
+ */
+int tree_get_keys_aux(struct tree_t *tree, char **keys, int i){
+    if(tree == NULL) return i;                               //se a árvore for nula retorna o i
+    if(tree->node == NULL) return i;                         //se o node for nulo retorna o i
+
+    if(tree->left != NULL) i = tree_get_keys_aux(tree->left, keys, i);  //handle left
+    
+    keys[i] = strdup(tree->node->key);                     //add current root key to array
+    i++;
+    
+    if(tree->right != NULL) i = tree_get_keys_aux(tree->right, keys, i); //handle right
+    return i;
+}
+
 /* Função que devolve um array de char* com a cópia de todas as keys da
  * árvore, colocando o último elemento do array com o valor NULL e
  * reservando toda a memória necessária. As keys devem vir ordenadas segundo a ordenação alfabética das mesmas.
@@ -198,33 +213,35 @@ int tree_height(struct tree_t *tree){
 char **tree_get_keys(struct tree_t *tree){
     if(tree == NULL) return NULL;
     if(tree->node == NULL) return NULL;
-    int size = tree_size(tree);
-    char **keys = malloc((size + 1) * sizeof(char*));   //+1 para o ultimo elemento ser NULL
-    if(keys == NULL) return NULL;                       //erro a alocar memória
-
+    int size = tree_size(tree);                             //usual stuff
+    char **keys = malloc((size+1)*sizeof(char*));
+    if(keys == NULL) return NULL;
     int i = 0;
+    
+    if(tree->left != NULL) i = tree_get_keys_aux(tree->left, keys, i);   //handle left side
 
-    if(tree->left != NULL){
-        char **left_keys = tree_get_keys(tree->left);   //recursiva para a esquerda (menores)
-        while(left_keys[i] != NULL){
-            keys[i] = strdup(left_keys[i]);
-            i++;
-        }
-    }
-
-    keys[i] = strdup(tree->node->key);                  //adiciona a key do node atual
+    keys[i] = strdup(tree->node->key);                                   //handle current root
     i++;
 
-    if(tree->right != NULL){
-        char **right_keys = tree_get_keys(tree->right); //recursiva para a direita (maiores)
-        while(right_keys[i - sizeof(right_keys)/sizeof(char*)] != NULL){
-            keys[i] = strdup(right_keys[i - sizeof(right_keys)/sizeof(char*)]);
-            i++;
-        }
-    }
+    if(tree->right != NULL) i = tree_get_keys_aux(tree->right, keys, i); //handle right side
 
-    keys[i] = NULL;                                     //ultimo elemento a NULL
+    keys[i] = NULL;                                                //add NULL
     return keys;
+}
+
+/* Função auxiliar para a função tree_get_values().
+ */
+int tree_get_values_aux(struct tree_t *tree, void **values, int i){
+    if(tree == NULL) return i;                               //se a árvore for nula retorna o i
+    if(tree->node == NULL) return i;                         //se o node for nulo retorna o i
+
+    if(tree->left != NULL) i = tree_get_values_aux(tree->left, values, i);  //handle left
+    
+    values[i] = data_dup(tree->node->value);                     //add current root value to array
+    i++;
+    
+    if(tree->right != NULL) i = tree_get_values_aux(tree->right, values, i); //handle right
+    return i;
 }
 
 /* Função que devolve um array de void* com a cópia de todas os values da
@@ -234,39 +251,25 @@ char **tree_get_keys(struct tree_t *tree){
 void **tree_get_values(struct tree_t *tree){
     if(tree == NULL) return NULL;
     if(tree->node == NULL) return NULL;
-    int size = tree_size(tree);
-    void **values = malloc((size + 1) * sizeof(void*));
+    int size = tree_size(tree);                             //usual stuff
+    void **values = malloc((size+1)*sizeof(void*));
     if(values == NULL) return NULL;
     int i = 0;
+    
+    if(tree->left != NULL) i = tree_get_values_aux(tree->left, values, i);   //handle left side
 
-    if(tree->left != NULL){
-        void **left_values = tree_get_values(tree->left);
-        while(left_values[i] != NULL){
-            values[i] = data_dup(left_values[i]);
-            i++;
-        }
-    }
-
-    values[i] = data_dup(tree->node->value);
+    values[i] = data_dup(tree->node->value);                                   //handle current root
     i++;
 
-    if(tree->right != NULL){
-        void **right_values = tree_get_values(tree->right);
-        while(right_values[i - sizeof(right_values)/sizeof(void*)] != NULL){
-            values[i] = data_dup(right_values[i - sizeof(right_values)/sizeof(void*)]);
-            i++;
-        }
-    }
+    if(tree->right != NULL) i = tree_get_values_aux(tree->right, values, i); //handle right side
 
-    values[i] = NULL;
+    values[i] = NULL;                                                //add NULL
     return values;
 }
-
 
 /* Função que liberta toda a memória alocada por tree_get_keys().
  */
 void tree_free_keys(char **keys){
-    if(keys == NULL) return;
     int i = 0;
     while(keys[i] != NULL){
         free(keys[i]);
@@ -278,7 +281,6 @@ void tree_free_keys(char **keys){
 /* Função que liberta toda a memória alocada por tree_get_values().
  */
 void tree_free_values(void **values){
-    if(values == NULL) return;
     int i = 0;
     while(values[i] != NULL){
         data_destroy(values[i]);
@@ -286,4 +288,3 @@ void tree_free_values(void **values){
     }
     free(values);
 }
-
