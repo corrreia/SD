@@ -1,3 +1,10 @@
+/* -------------------------------------------------------------
+* Grupo: 49
+* Membros: Miguel Pato, fc57102
+*          Tomás Correia, fc56372
+*          João Figueiredo, fc53524
+*
+*/
 #include "../include/data.h"
 #include "../include/entry.h"
 #include "../include/tree.h"
@@ -24,9 +31,9 @@ struct tree_t *tree_create(){
  */
 void tree_destroy(struct tree_t *tree){
     if(tree == NULL) return;
-    if(tree->node != NULL) entry_destroy(tree->node);
-    if(tree->left != NULL) tree_destroy(tree->left);
-    if(tree->right != NULL) tree_destroy(tree->right);
+    tree_destroy(tree->left);
+    tree_destroy(tree->right);
+    entry_destroy(tree->node);
     free(tree);
 }
 
@@ -55,9 +62,8 @@ int tree_put(struct tree_t *tree, char *key, struct data_t *value){
     free(entry);
 
     if(comp == 0){
-        char *key2 = strdup(key);
-        struct data_t *value2 = data_dup(value);
-        entry_replace(tree->node, key2, value2);
+        data_destroy(tree->node->value);
+        tree->node->value = data_dup(value);
         return 0;
     }
     if(comp == -1){
@@ -94,7 +100,7 @@ struct data_t *tree_get(struct tree_t *tree, char *key){
     //compare using entry_compare()
     struct entry_t *entry = entry_create(key, NULL);
     int comp = entry_compare(tree->node, entry);
-    free(entry);
+    free(entry); //only free the entry, not the the key since it is not duplicated
 
     if(comp == 0){
         return data_dup(tree->node->value);
@@ -123,9 +129,9 @@ int tree_del(struct tree_t *tree, char *key){
     //compare using entry_compare()
     struct entry_t *entry = entry_create(key, NULL);
     int comp = entry_compare(tree->node, entry);
-    free(entry);
+    free(entry); //only free the entry, not the the key since it is not duplicated
 
-    if(comp == 0){
+    if(comp == 0){  // Se a entrada for a que se pretende remover
         if(tree->left == NULL && tree->right == NULL){
             entry_destroy(tree->node);
             tree->node = NULL;
@@ -146,17 +152,27 @@ int tree_del(struct tree_t *tree, char *key){
             return 0;
         }
 
-        if(tree->left != NULL && tree->right != NULL){  
-            struct tree_t *temp = tree->right;            //tree direira (maior)
-            while(temp->left != NULL){                    //encontra o menor da direita
-                temp = temp->left;
+        if(tree->left != NULL && tree->right != NULL){
+            struct tree_t *temp = tree->right;
+            struct tree_t *temp2 = tree->right;      
+            while(temp->left != NULL){            // Encontra o menor elemento da subárvore direita
+                temp2 = temp;                       // Guarda o pai do menor elemento
+                temp = temp->left;              
             }
-            entry_replace(tree->node, temp->node->key, temp->node->value);         //substitui o node da árvore pelo menor da direita
-            return tree_del(tree->right, temp->node->key);
-        } 
+            entry_destroy(tree->node);         // Liberta a entrada que vai ser substituida
+            tree->node = temp->node;           // Substitui a entrada
+            if(temp2 == temp){                 // Se o menor elemento for o primeiro da subárvore direita
+                tree->right = temp->right;   // Substitui a subárvore direita
+            }
+            else{
+                temp2->left = temp->right;   // Substitui o menor elemento pelo seu filho direito
+            }
+            free(temp);
+            return 0;
+        }
     }
     
-    if(comp == -1){
+    if(comp == -1){  
         if(tree->left == NULL) return -1;
         return tree_del(tree->left, key);
     }

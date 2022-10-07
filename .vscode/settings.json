@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "tree-private.h": "c"
+        "tree-private.h": "c",
+        "string.h": "c"
     }
 }

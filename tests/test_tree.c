@@ -238,7 +238,52 @@ int testGetKeys() {
 /**************************************************************/
 
 int testGetValues() {
-	//TODO
+	int result = 1,i,j,achou;
+	struct tree_t *tree = tree_create();
+	char **keys;
+	char *k[4] = {"abc","bcd","cde","def"};
+	char *v[4] = {"abc","bcd","cde","def"};
+	struct data_t *d[4];
+
+	for (i = 0; i < 4; i++) {
+		d[i] = data_create2(4, strdup(v[i]));
+	}
+
+	tree_put(tree,k[3],d[3]);
+	tree_put(tree,k[2],d[2]);
+	tree_put(tree,k[1],d[1]);
+	tree_put(tree,k[0],d[0]);
+
+	keys = tree_get_keys(tree);
+	void **values = tree_get_values(tree);
+
+	for (i = 0; i < 4; i++) {
+		data_destroy(d[i]);
+	}
+
+	for(i=0; keys[i] != NULL; i++) {
+		achou = 0;
+		for(j=0; j<4; j++) {
+			achou = (achou || (strcmp(keys[i],k[j]) == 0));
+		}
+		result = (result && achou);
+	}
+
+	for (i = 0; values[i] != NULL; i++) {
+		for (j = 0; j < 4; j++) {
+			achou = (achou || (strcmp(values[i], v[j]) == 0));
+		}
+	}
+
+	result = result && (tree_size(tree) == i);
+
+	tree_free_keys(keys);
+	tree_free_values(values);
+
+	tree_destroy(tree);
+
+	printf("tree - testGetKeys: %s\n",result?"passou":"não passou");
+	return result;
 }
 
 /**************************************************************/
@@ -260,7 +305,7 @@ int main() {
 
 	score += testGetKeys();
 	
-	//score += testGetValues();
+	score += testGetValues();
 
 	printf("teste tree bin: %d/7\n",score);
 

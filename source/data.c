@@ -1,3 +1,11 @@
+/* -------------------------------------------------------------
+* Grupo: 49
+* Membros: Miguel Pato, fc57102
+*          Tomás Correia, fc56372
+*          João Figueiredo, fc53524
+*
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,6 +45,7 @@ struct data_t *data_create2(int size, void *data){
  */
 void data_destroy(struct data_t *data){
     if(data == NULL) return;
+    //if(data->data != NULL) 
     free(data->data);
     free(data);
 }
@@ -46,14 +55,8 @@ void data_destroy(struct data_t *data){
  */
 struct data_t *data_dup(struct data_t *data){
     if(data == NULL || data->datasize <= 0 || data->data == NULL) return NULL;
-
-    struct data_t *data2 = (struct data_t *) malloc(sizeof(struct data_t));
-
-    data2->datasize = data->datasize;
-    data2->data = malloc(data->datasize);
-
+    struct data_t *data2 = data_create(data->datasize);
     memcpy(data2->data, data->data, data->datasize);
-    
     return data2;
 }
 

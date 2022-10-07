@@ -1,3 +1,10 @@
+# -------------------------------------------------------------
+# Grupo: 49
+# Membros: Miguel Pato, fc57102
+#          Tomás Correia, fc56372
+#          João Figueiredo, fc53524
+#--------------------------------------------------------------
+
 # compile everything present in the directory /src
 # and put the object files in the directory /obj
 # and the executable in the directory /bin

@@ -1,3 +1,10 @@
+/* -------------------------------------------------------------
+* Grupo: 49
+* Membros: Miguel Pato, fc57102
+*          Tomás Correia, fc56372
+*          João Figueiredo, fc53524
+*
+*/
 #include "../include/data.h"
 #include "../include/entry.h"
 #include <stdio.h>
@@ -11,26 +18,41 @@
  * da função tree_get_keys. Para além disso, retorna o tamanho do
  * buffer alocado ou -1 em caso de erro.
  */
-int keyArray_to_buffer(char **keys, char **keys_buf){
-    // if(keys == NULL || keys_buf == NULL) return -1;
+int keyArray_to_buffer(char **keys, char **keys_buf){  //nao sei se é assim que se faz
+    //add all keys to buffer separated by theyr size
+    int size = 0;
+    int i = 0;
 
-    // keys_buf = malloc(sizeof(keys));
-    // if(keys_buf == NULL) return -1;
+    int size_keys = sizeof(keys)/sizeof(keys[0]);
     
-    // int i = 0;
-    // while(keys[i] != NULL){
-    //     strcat(*keys_buf, keys[i]);
-    //     i++;
+    while(keys[i] != NULL){
+        size += strlen(keys[i]) + 1;
+        i++;
+    }
+
+    // for (int k = 0; k < i; k++) {
+    //     keys_buf[k] = (char *)malloc(strlen(keys[k]) + 1);
+    //     char* test = (char*)malloc(strlen(keys[k]) + 1);
+    //     test[0] = (char)strlen(keys[k]);
+    //     memcpy(test + 1, keys[k], strlen(keys[k]));
+    //     memcpy(keys_buf[k], test, sizeof(test));
     // }
-    // return sizeof(keys_buf);
-    if(keys == NULL || keys_buf == NULL) return -1;
-    int size = htonl(sizeof(keys));                     //tamanho do array de keys em bytes (network byte order)
-    int i = sizeof(int) + size;
-    *keys_buf = malloc(i);
-    if(*keys_buf == NULL) return -1;
-    memcpy(*keys_buf, &size, sizeof(int));
-    memcpy(*keys_buf + sizeof(int), keys, size);
-    return i;
+
+    for (i = 0; i < size_keys*2; ++i) {
+        if(i%2 == 0) keys_buf[i] = (char *)malloc(1 + 1);
+        if(i%2 == 1) keys_buf[i] = (char *)malloc(strlen(keys[i/2]) + 1);
+    }
+
+    for (i = 0; i < size_keys*2; ++i) {
+        if(i%2 == 0) {
+            keys_buf[i/2] = (char *) strlen(keys[i/2]);
+        }
+        else { 
+            memcpy(keys_buf[i], keys[i/2 + 1], strlen(keys[i/2 + 1]));
+        }
+    }
+
+    return size;
 }
 
 /* De-serializa a mensagem contida em keys_buf, com tamanho
@@ -39,13 +61,28 @@ int keyArray_to_buffer(char **keys, char **keys_buf){
  * em caso de erro.
  */
 char** buffer_to_keyArray(char *keys_buf, int keys_buf_size){
-    if (keys_buf == NULL || keys_buf_size < 0) return NULL;
+    //get all keys from buffer
+    int i = 0;
+    int j = 0;
+    int size = 0;
+    int size_keys = 0;
+    char** keys = NULL;
 
-    int size = 0;                               //tamanho do array de strings
-    void *ptr;                                  //ponteiro auxiliar
-    memcpy(&size, keys_buf, sizeof(int));       //copia o tamanho do array de strings para a variavel size
-    ptr = malloc(size);                         //aloca o espaço para o array de strings
-    if(ptr == NULL) return NULL;                //verifica se a alocação foi bem sucedida
-    memcpy(ptr, keys_buf + sizeof(int), size);  //copia o array de strings para o espaço alocado
-    return ptr;                                 //retorna o array de strings
+    while(i < keys_buf_size){
+        size = (int)keys_buf[i];
+        size_keys++;
+        i += size + 1;
+    }
+
+    keys = (char**)malloc(size_keys*sizeof(char*));  //nao conseguimos testar porque a fuxxao do keyArray_to_buffer nao funciona
+
+    i = 0;
+    while(i < keys_buf_size){
+        size = (int)keys_buf[i];
+        keys[j] = (char*)malloc(size*sizeof(char));
+        memcpy(keys[j], keys_buf + i + 1, size);
+        i += size + 1;
+        j++;
+    }
+    return keys;
 }

@@ -1,3 +1,10 @@
+/* -------------------------------------------------------------
+* Grupo: 49
+* Membros: Miguel Pato, fc57102
+*          Tomás Correia, fc56372
+*          João Figueiredo, fc53524
+*
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,7 +32,7 @@ void entry_destroy(struct entry_t *entry){
     if (entry == NULL) return;
 
     free(entry->key);
-    data_destroy(entry->value);
+    if (entry->value != NULL) data_destroy(entry->value);
     free(entry);
 }
 
@@ -50,7 +57,7 @@ void entry_replace(struct entry_t *entry, char *new_key, struct data_t *new_valu
     if(entry == NULL) return;
 
     free(entry->key);
-    data_destroy(entry->value);
+    if (entry->value != NULL) data_destroy(entry->value);
 
     entry->key = new_key;
     entry->value = new_value;
@@ -61,9 +68,8 @@ void entry_replace(struct entry_t *entry, char *new_key, struct data_t *new_valu
 *  A função devolve 0 se forem iguais, -1 se entry1<entry2, e 1 caso contrário.
 */
 int entry_compare(struct entry_t *entry1, struct entry_t *entry2){
-    //if(entry1 == NULL || entry2 == NULL) return -1;
-
-    if (strcmp(entry1->key, entry2->key) == 0) return 0;
-    if (strcmp(entry1->key, entry2->key) < 0) return -1;
-    return 1;
+    int cmp = strcmp(entry1->key, entry2->key);
+    if(cmp == 0) return 0;
+    else if(cmp < 0) return -1;
+    else return 1;
 }
