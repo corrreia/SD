@@ -38,9 +38,11 @@ int keyArray_to_buffer(char **keys, char **keys_buf){  //nao sei se é assim que
     //     memcpy(keys_buf[k], test, sizeof(test));
     // }
 
+    keys_buf = (char **) malloc(sizeof(char *));
+
     for (i = 0; i < size_keys*2; ++i) {
-        if(i%2 == 0) keys_buf[i] = (char *)malloc(1 + 1);
-        if(i%2 == 1) keys_buf[i] = (char *)malloc(strlen(keys[i/2]) + 1);
+        if(i%2 == 0) keys_buf[i] = (char *) malloc(sizeof(strlen(keys[i/2]) + 1));
+        if(i%2 == 1) keys_buf[i] = (char *) malloc(sizeof(keys[i/2]));
     }
 
     for (i = 0; i < size_keys*2; ++i) {
