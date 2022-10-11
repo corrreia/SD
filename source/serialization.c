@@ -11,6 +11,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Converts a int to a string
+ */
+char *int_to_string(int n){
+    char *str = (char *) malloc(13);
+    sprintf(str, "%d", n);
+    return str;
+}
 
 /* Serializa todas as keys presentes no array de strings keys
  * para o buffer keys_buf que será alocado dentro da função.
@@ -18,44 +25,36 @@
  * da função tree_get_keys. Para além disso, retorna o tamanho do
  * buffer alocado ou -1 em caso de erro.
  */
-int keyArray_to_buffer(char **keys, char **keys_buf){  //nao sei se é assim que se faz
-    //add all keys to buffer separated by theyr size
-    int size = 0;
-    int i = 0;
+int keyArray_to_buffer(char **keys, char **keys_buf){
 
-    int size_keys = sizeof(keys)/sizeof(keys[0]);
-    
-    while(keys[i] != NULL){
-        size += strlen(keys[i]) + 1;
-        i++;
+    //keys_buf = sould be a array of strings folowing the format: 
+    //  [size of the key][key][size of the key][key]...
+    // so the number of elements in the buffer is the number of keys * 2
+
+    //count the number of keys
+    int size_buffer = 0; //number of elements in the buffer
+    while(keys[size_buffer] != NULL){
+        size_buffer++;
     }
+    size_buffer *= 2;
 
-    // for (int k = 0; k < i; k++) {
-    //     keys_buf[k] = (char *)malloc(strlen(keys[k]) + 1);
-    //     char* test = (char*)malloc(strlen(keys[k]) + 1);
-    //     test[0] = (char)strlen(keys[k]);
-    //     memcpy(test + 1, keys[k], strlen(keys[k]));
-    //     memcpy(keys_buf[k], test, sizeof(test));
-    // }
-
-    keys_buf = (char **) malloc(sizeof(char *));
-
-    for (i = 0; i < size_keys*2; ++i) {
-        if(i%2 == 0) keys_buf[i] = (char *) malloc(sizeof(strlen(keys[i/2]) + 1));
-        if(i%2 == 1) keys_buf[i] = (char *) malloc(sizeof(keys[i/2]));
-    }
-
-    for (i = 0; i < size_keys*2; ++i) {
-        if(i%2 == 0) {
-            keys_buf[i/2] = (char *) strlen(keys[i/2]);
-        }
-        else { 
-            memcpy(keys_buf[i], keys[i/2 + 1], strlen(keys[i/2 + 1]));
+    //allocate the buffer with a for loop
+    int h = 0;
+    for(int i = 0; i < size_buffer; i++){
+        if (i % 2 == 0){
+            //allocate the size of the key
+            keys_buf[i] = int_to_string(strlen(keys[h]));
+        } else {
+            //allocate the key
+            keys_buf[i] = (char *) malloc(sizeof(char) * strlen(keys[h]));
+            keys_buf[i] = strdup(keys[h]);
+            h++;
         }
     }
 
-    return size;
+    return size_buffer;
 }
+
 
 /* De-serializa a mensagem contida em keys_buf, com tamanho
  * keys_buf_size, colocando-a e retornando-a num array char**,

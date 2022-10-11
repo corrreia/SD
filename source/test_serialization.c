@@ -27,22 +27,23 @@ int testSerialization() {
 
 	keys = tree_get_keys(tree);
 	
+	int size = 0;
 	//print keys
-	for(int i=0; keys[i] != NULL; i++) {
-		printf("key: %s\n", keys[i]);
-	}
-	printf("key: %s\n", keys[4]);
-
+	printf("key: %s\n",keys[0]);
+	printf("key: %s\n",keys[1]);
+	printf("key: %s\n",keys[2]);
+	printf("key: %s\n",keys[3]);
 	char **serialized;
-
-	int size = keyArray_to_buffer(keys, serialized);
-
-
+	size = keyArray_to_buffer(keys, serialized);
 	printf("size: %d\n", size);
-
-	for(int i = 0; i < size; i++) {
-		printf("serialized[%d]: %s\n", i, serialized[i]);
-	}
+	printf("serialized: %s\n", serialized[0]);
+	printf("serialized: %s\n", serialized[1]);
+	printf("serialized: %s\n", serialized[2]);
+	printf("serialized: %s\n", serialized[3]);
+	printf("serialized: %s\n", serialized[4]);
+	printf("serialized: %s\n", serialized[5]);
+	printf("serialized: %s\n", serialized[6]);
+	printf("serialized: %s\n", serialized[7]);
 
 	//free(serialized);
 	tree_free_keys(keys);
