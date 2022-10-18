@@ -1,6 +1,10 @@
 {
     "files.associations": {
         "tree-private.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "entry.h": "c",
+        "client_stub.h": "c",
+        "sdmessage.pb-c.h": "c",
+        "client_stub-private.h": "c"
     }
 }

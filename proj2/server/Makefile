@@ -34,7 +34,7 @@ SRC = $(wildcard $(SRCDIR)/*.c)
 OBJ = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SRC))
 
 # define the executable file
-BIN = $(BINDIR)/server
+BIN = $(BINDIR)/tree-server
 
 # define the header files
 INC = $(wildcard $(INCDIR)/*.h)

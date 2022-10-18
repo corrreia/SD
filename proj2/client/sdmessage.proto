@@ -1,0 +1,15 @@
+/* Example of .proto message
+*/
+
+syntax = "proto3";
+
+message Entry {
+  string key = 1;
+  
+  message Data {
+    int32 datasize = 1;
+    string value = 2;
+  }
+
+  Data data = 2;
+}
