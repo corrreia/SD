@@ -13,7 +13,9 @@
 CC = gcc
 
 # define the C compiler flags
-CFLAGS = -g
+PROTOC_DIR=/usr/
+CFLAGS = -Wall -g -O2 -I${PROTOC_DIR}include/
+LDFLAGS = ${PROTOC_DIR}lib/x86_64-linux-gnu/libprotobuf-c.a
 
 # define the directories containing the source files
 SRCDIR = source
@@ -34,7 +36,7 @@ SRC = $(wildcard $(SRCDIR)/*.c)
 OBJ = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SRC))
 
 # define the executable file
-BIN = $(BINDIR)/tree-client
+BIN = $(BINDIR)/tree_client
 
 # define the header files
 INC = $(wildcard $(INCDIR)/*.h)
@@ -43,15 +45,11 @@ INC = $(wildcard $(INCDIR)/*.h)
 # define the rules
 all: $(BIN)
 
-%.pb-c.c:%.proto
-	protoc sdmessage.proto --c_out=./$(SRCDIR) --h_out=./$(INCDIR)
-
 $(BIN): $(OBJ)
-	$(CC) $(CFLAGS) -o $(BIN) $(OBJ)
+	$(CC) $(CFLAGS) -o $(BIN) $(OBJ) $(LDFLAGS)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c $(INC)
 	$(CC) $(CFLAGS) -c -o $@ $<
-
 
 .PHONY: clean
 

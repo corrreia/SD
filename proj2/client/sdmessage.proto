@@ -1,6 +1,3 @@
-/* Example of .proto message
-*/
-
 syntax = "proto3";
 
 message Entry {
