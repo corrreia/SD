@@ -1,4 +1,10 @@
-*/run.sh
+proj1/run.sh
+proj1/object
+proj1/binary
 
-*/binary/
-*/object/
+proj2/client/run.sh
+proj2/client/object/
+proj2/client/binary/
+proj2/server/run.sh
+proj2/server/object/
+proj2/server/binary/

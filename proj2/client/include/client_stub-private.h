@@ -1,10 +1,12 @@
 #ifndef _CLIENT_STUB_PRIVATE_H
 #define _CLIENT_STUB_PRIVATE_H
 
-#include "data.h"
-#include "entry.h"
+#include <netinet/in.h>
 
-struct rtree_t{//TODO: dont know yet
+struct rtree_t{
+    int socket;
+    struct sockaddr_in server;
 };
+
 
 #endif
