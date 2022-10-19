@@ -1,10 +1,10 @@
-proj1/run.sh
+#code
+.vscode
+
+#project 1
 proj1/object
 proj1/binary
 
-proj2/client/run.sh
-proj2/client/object/
-proj2/client/binary/
-proj2/server/run.sh
-proj2/server/object/
-proj2/server/binary/
+#project 2
+proj2/*/object
+proj2/*/binary
