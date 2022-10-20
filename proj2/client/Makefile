@@ -46,6 +46,10 @@ INC = $(wildcard $(INCDIR)/*.h)
 # define the rules
 all: $(BIN)
 
+# FIXME: this somehow doesn't work 
+%.pb-c.c:%.proto
+	protoc-c sdmessage.proto --c_out=./$(SRCDIR) 
+
 $(BIN): $(OBJ)
 	$(CC) $(CFLAGS) -o $(BIN) $(OBJ) $(LDFLAGS)
 
