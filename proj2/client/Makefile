@@ -15,7 +15,9 @@ CC = gcc
 # define the C compiler flags
 PROTOC_DIR=/usr/
 CFLAGS = -Wall -g -O2 -I${PROTOC_DIR}include/
-LDFLAGS = ${PROTOC_DIR}lib/x86_64-linux-gnu/libprotobuf-c.a
+#LDFLAGS = ${PROTOC_DIR}lib/x86_64-linux-gnu/libprotobuf-c.a  #for debian/ubuntu
+LDFLAGS = ${PROTOC_DIR}lib64/libprotobuf-c.so  #for fedora/redhat
+
 
 # define the directories containing the source files
 SRCDIR = source
