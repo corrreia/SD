@@ -3,6 +3,8 @@
 #include <string.h>
 
 #include "../include/client_stub.h"
+#include "../include/client_stub-private.h"
+#include "../include/data.h"
 
 int main(int argc, char **argv){
     if(argc == 1){ // No arguments
@@ -74,14 +76,13 @@ int main(int argc, char **argv){
                 continue;
             }
 
-            struct entry_t *entry_t = rtree_get(rtree, key);
-            if(entry_t == NULL){
+            struct data_t *data_t = rtree_get(rtree, key);
+            if(data_t == NULL){
                 printf("Error getting entry\n");
             }
             else{
                 printf("Entry successfully got\n");
-                printf("Key: %s\n", entry_t->key);
-                printf("Data: %p\n", entry_t->value->data);
+                printf("Data: %p\n", data_t->data);
             }
         }
 
@@ -127,14 +128,14 @@ int main(int argc, char **argv){
 
         // getkeys
         else if(strcmp(command, "getkeys") == 0){
-            struct data_t **keys = rtree_get_keys(rtree);
+            char **keys = rtree_get_keys(rtree);
             if(keys == NULL){
                 printf("Error getting keys\n");
             }
             else{
                 printf("Keys: ");
                 for(int i = 0; keys[i] != NULL; i++){
-                    printf("%p ", keys[i]->data);
+                    printf("%p ", keys[i]);
                 }
                 printf("\n");
             }
@@ -142,7 +143,7 @@ int main(int argc, char **argv){
 
         // getvalues
         else if(strcmp(command, "getvalues") == 0){
-            struct data_t **values = rtree_get_values(rtree);
+            struct data_t **values = (struct data_t **) rtree_get_values(rtree);
             if(values == NULL){
                 printf("Error getting values\n");
             }
