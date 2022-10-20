@@ -13,7 +13,21 @@
  *   na estrutura rtree;
  * - Retornar 0 (OK) ou -1 (erro).
  */
-int network_connect(struct rtree_t *rtree){
+int network_connect(struct rtree_t *rtree){  //FIXME: This needs to be changed 
+    struct sockaddr_in server_addr;
+    int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if(socket_fd == -1){
+        printf("Error creating TCP socket");
+        return -1;
+    }
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(rtree->port);
+    server_addr.sin_addr.s_addr = inet_addr(rtree->address);
+    if(connect(socket_fd, (struct sockaddr *) &server_addr, sizeof(server_addr)) == -1){
+        printf("Error connecting to server");
+        return -1;
+    }
+    rtree->socket = socket_fd;
     return 0;
 }
 

@@ -21,7 +21,7 @@
  * em que address_port é uma string no formato <hostname>:<port>.
  * Retorna NULL em caso de erro.
  */
-struct rtree_t *rtree_connect(const char *address_port){
+struct rtree_t *rtree_connect(const char *address_port){  //FIXME: bad implementation
 
     struct rtree_t *rtree = (struct rtree_t *) malloc(sizeof(struct rtree_t));
 
