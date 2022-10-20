@@ -81,7 +81,7 @@ int main(int argc, char **argv){
             else{
                 printf("Entry successfully got\n");
                 printf("Key: %s\n", entry_t->key);
-                printf("Data: %s\n", entry_t->value->data);
+                printf("Data: %p\n", entry_t->value->data);
             }
         }
 
@@ -134,7 +134,7 @@ int main(int argc, char **argv){
             else{
                 printf("Keys: ");
                 for(int i = 0; keys[i] != NULL; i++){
-                    printf("%s ", keys[i]->data);
+                    printf("%p ", keys[i]->data);
                 }
                 printf("\n");
             }
@@ -149,7 +149,7 @@ int main(int argc, char **argv){
             else{
                 printf("Values: ");
                 for(int i = 0; values[i] != NULL; i++){
-                    printf("%s ", values[i]->data);
+                    printf("%p ", values[i]->data);
                 }
                 printf("\n");
             }
