@@ -15,66 +15,97 @@ PROTOBUF_C__BEGIN_DECLS
 #endif
 
 
-typedef struct _Entry Entry;
-typedef struct _Entry__Data Entry__Data;
+typedef struct _MessageT MessageT;
+typedef struct _MessageT__Entry MessageT__Entry;
 
 
 /* --- enums --- */
 
+typedef enum _MessageT__Opcode {
+  MESSAGE_T__OPCODE__OP_BAD = 0,
+  MESSAGE_T__OPCODE__OP_SIZE = 10,
+  MESSAGE_T__OPCODE__OP_HEIGHT = 20,
+  MESSAGE_T__OPCODE__OP_DEL = 30,
+  MESSAGE_T__OPCODE__OP_GET = 40,
+  MESSAGE_T__OPCODE__OP_PUT = 50,
+  MESSAGE_T__OPCODE__OP_GETKEYS = 60,
+  MESSAGE_T__OPCODE__OP_GETVALUES = 70,
+  MESSAGE_T__OPCODE__OP_ERROR = 99
+    PROTOBUF_C__FORCE_ENUM_TO_BE_INT_SIZE(MESSAGE_T__OPCODE)
+} MessageT__Opcode;
+typedef enum _MessageT__CType {
+  MESSAGE_T__C_TYPE__CT_BAD = 0,
+  MESSAGE_T__C_TYPE__CT_KEY = 10,
+  MESSAGE_T__C_TYPE__CT_VALUE = 20,
+  MESSAGE_T__C_TYPE__CT_ENTRY = 30,
+  MESSAGE_T__C_TYPE__CT_KEYS = 40,
+  MESSAGE_T__C_TYPE__CT_VALUES = 50,
+  MESSAGE_T__C_TYPE__CT_RESULT = 60,
+  MESSAGE_T__C_TYPE__CT_NONE = 70
+    PROTOBUF_C__FORCE_ENUM_TO_BE_INT_SIZE(MESSAGE_T__C_TYPE)
+} MessageT__CType;
 
 /* --- messages --- */
 
-struct  _Entry__Data
-{
-  ProtobufCMessage base;
-  int32_t datasize;
-  char *value;
-};
-#define ENTRY__DATA__INIT \
- { PROTOBUF_C_MESSAGE_INIT (&entry__data__descriptor) \
-    , 0, (char *)protobuf_c_empty_string }
-
-
-struct  _Entry
+struct  _MessageT__Entry
 {
   ProtobufCMessage base;
   char *key;
-  Entry__Data *data;
+  ProtobufCBinaryData value;
 };
-#define ENTRY__INIT \
- { PROTOBUF_C_MESSAGE_INIT (&entry__descriptor) \
-    , (char *)protobuf_c_empty_string, NULL }
+#define MESSAGE_T__ENTRY__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&message_t__entry__descriptor) \
+    , (char *)protobuf_c_empty_string, {0,NULL} }
 
 
-/* Entry__Data methods */
-void   entry__data__init
-                     (Entry__Data         *message);
-/* Entry methods */
-void   entry__init
-                     (Entry         *message);
-size_t entry__get_packed_size
-                     (const Entry   *message);
-size_t entry__pack
-                     (const Entry   *message,
+struct  _MessageT
+{
+  ProtobufCMessage base;
+  MessageT__Opcode opcode;
+  MessageT__CType c_type;
+  char *key;
+  ProtobufCBinaryData value;
+  MessageT__Entry *entry;
+  int32_t result;
+  size_t n_keys;
+  char **keys;
+  size_t n_values;
+  ProtobufCBinaryData *values;
+};
+#define MESSAGE_T__INIT \
+ { PROTOBUF_C_MESSAGE_INIT (&message_t__descriptor) \
+    , MESSAGE_T__OPCODE__OP_BAD, MESSAGE_T__C_TYPE__CT_BAD, (char *)protobuf_c_empty_string, {0,NULL}, NULL, 0, 0,NULL, 0,NULL }
+
+
+/* MessageT__Entry methods */
+void   message_t__entry__init
+                     (MessageT__Entry         *message);
+/* MessageT methods */
+void   message_t__init
+                     (MessageT         *message);
+size_t message_t__get_packed_size
+                     (const MessageT   *message);
+size_t message_t__pack
+                     (const MessageT   *message,
                       uint8_t             *out);
-size_t entry__pack_to_buffer
-                     (const Entry   *message,
+size_t message_t__pack_to_buffer
+                     (const MessageT   *message,
                       ProtobufCBuffer     *buffer);
-Entry *
-       entry__unpack
+MessageT *
+       message_t__unpack
                      (ProtobufCAllocator  *allocator,
                       size_t               len,
                       const uint8_t       *data);
-void   entry__free_unpacked
-                     (Entry *message,
+void   message_t__free_unpacked
+                     (MessageT *message,
                       ProtobufCAllocator *allocator);
 /* --- per-message closures --- */
 
-typedef void (*Entry__Data_Closure)
-                 (const Entry__Data *message,
+typedef void (*MessageT__Entry_Closure)
+                 (const MessageT__Entry *message,
                   void *closure_data);
-typedef void (*Entry_Closure)
-                 (const Entry *message,
+typedef void (*MessageT_Closure)
+                 (const MessageT *message,
                   void *closure_data);
 
 /* --- services --- */
@@ -82,8 +113,10 @@ typedef void (*Entry_Closure)
 
 /* --- descriptors --- */
 
-extern const ProtobufCMessageDescriptor entry__descriptor;
-extern const ProtobufCMessageDescriptor entry__data__descriptor;
+extern const ProtobufCMessageDescriptor message_t__descriptor;
+extern const ProtobufCMessageDescriptor message_t__entry__descriptor;
+extern const ProtobufCEnumDescriptor    message_t__opcode__descriptor;
+extern const ProtobufCEnumDescriptor    message_t__c_type__descriptor;
 
 PROTOBUF_C__END_DECLS
 

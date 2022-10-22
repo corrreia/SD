@@ -22,8 +22,8 @@ int network_connect(struct rtree_t *rtree);
  * - De-serializar a mensagem de resposta;
  * - Retornar a mensagem de-serializada ou NULL em caso de erro.
  */
-struct message_t *network_send_receive(struct rtree_t * rtree,
-                                       struct message_t *msg);
+struct _MessageT *network_send_receive(struct rtree_t * rtree,
+                                       struct _MessageT *msg);
 
 /* A função network_close() fecha a ligação estabelecida por
  * network_connect().
