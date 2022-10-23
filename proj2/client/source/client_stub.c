@@ -22,42 +22,44 @@
  */
 struct rtree_t *rtree_connect(const char *address_port){  
 
+    if(address_port == NULL){
+        return NULL;
+    }
+
     struct rtree_t *rtree = (struct rtree_t *) malloc(sizeof(struct rtree_t));
 
-    if(rtree == NULL){
-        //printf("Error allocating memory for rtree");
+    char *ap_copy = strdup(address_port);
+
+    if(ap_copy == NULL){
+        return NULL;
     }
 
-    // char *ap_copy = strdup(address_port);   //tranform const char * in char *
-    // char *address = strtok(ap_copy, ":");   //FIXME: WHY DOES THIS NOT WORK?
-    // char *port = strtok(NULL, ":");
+    char *address = strtok(ap_copy, ":");   //FIXME: Segmentation fault
+    char *port = strtok(NULL, "\0");
 
-    char *address = (char *) malloc(sizeof(char) * 100);
-    char *port = (char *) malloc(sizeof(char) * 100);
-
-    int i = 0;
-    while(address_port[i] != ':'){
-        address[i] = address_port[i];
-        i++;
-    }
-    address[i] = '\0';
-    i++;
-    int j = 0;
-    while(address_port[i] != '\0'){
-        port[j] = address_port[i];
-        i++;
-        j++;
-    }
-    port[j] = '\0';
+    printf("address: %s \nport: %s \n", address, port);
 
     //populate rtree struct and call network_connect()
 
+    if(rtree == NULL){
+        printf("Error allocating memory for rtree");
+        free(ap_copy);
+        return NULL;
+    }    
+
     rtree->server.sin_family = AF_INET;
     rtree->server.sin_port = htons(atoi(port));
-    rtree->server.sin_addr.s_addr = inet_addr(address);
+
+    if(inet_pton(AF_INET, address, &rtree->server.sin_addr) <= 0){
+        printf("Error converting address");
+        free(ap_copy);
+        free(rtree);
+        return NULL;
+    }
 
     if(network_connect(rtree) < 0){
-        //printf("Error connecting to server");
+        //printf("Error connecting  to server\n");
+        close(rtree->socket);
         return NULL;
     }
 

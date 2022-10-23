@@ -22,7 +22,7 @@ int main(int argc, char **argv){
     struct rtree_t *rtree = rtree_connect(argv[1]);
 
     if(rtree == NULL){
-        printf("Error connecting to server (timeout)\n");
+        printf("Error connecting to server\n");
         return -1;
     }
 

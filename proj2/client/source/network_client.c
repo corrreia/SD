@@ -20,12 +20,15 @@
 int network_connect(struct rtree_t *rtree){
     int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
     if(socket_fd < 0){
-        //printf("Error creating socket");
+        printf("Error creating socket");
         return -1;
     }
 
-    if(connect(socket_fd, (struct sockaddr *) &rtree->server, sizeof(rtree->server)) < 0){
-        //printf("Error connecting to server");
+    if(connect(socket_fd, (struct sockaddr *) &rtree->server, sizeof(rtree->server)) < 0){  //FIXME: GET ERROR HERE
+        printf("Error connecting to server");
+        //print rtree->server
+        printf("rtree->server.sin_family: %d \n rtree->server.sin_port: %d \n rtree->server.sin_addr.s_addr: %d \n rtree->server.sin_zero: %s \n", rtree->server.sin_family, rtree->server.sin_port, rtree->server.sin_addr.s_addr, rtree->server.sin_zero);
+        close(socket_fd);
         return -1;
     }
 
