@@ -63,6 +63,8 @@ struct rtree_t *rtree_connect(const char *address_port){
         return NULL;
     }
 
+    free(ap_copy);
+
     return rtree;
 }
 
