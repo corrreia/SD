@@ -20,18 +20,20 @@
 int network_connect(struct rtree_t *rtree){
 
     rtree->socket = socket(AF_INET, SOCK_STREAM, 0);
-    // if(rtree->socket = socket(AF_INET, SOCK_STREAM, 0) < 0){
-    //     printf("Error creating socket");
-    //     free(rtree);
-    //     return -1;
-    // }
+    if(rtree->socket < 0){
+        perror("Error creating socket");
+        free(rtree);
+        return -1;
+    }
 
     if(connect(rtree->socket, (struct sockaddr *) &rtree->server, sizeof(rtree->server)) < 0){
-        printf("Error connecting to server");
+        perror("Error connecting to server");
         close(rtree->socket);
         free(rtree);
         return -1;
     }
+
+    printf("Connection established!!\n");
     
     return 0;
 }
@@ -54,14 +56,14 @@ struct _MessageT *network_send_receive(struct rtree_t * rtree, struct _MessageT 
 
     //send msg
     if(send(socket_fd, msg_buffer, msg_size, 0) < 0){
-        printf("Error sending message network\n");
+        perror("Error sending message network\n");
         return NULL;
     }
 
     //receive response
     uint8_t *response_buffer = (uint8_t *) malloc(1000);
     if(recv(socket_fd, response_buffer, 1000, 0) < 0){
-        printf("Error receiving response\n");
+        perror("Error receiving response\n");
         return NULL;
     }
 
@@ -69,7 +71,7 @@ struct _MessageT *network_send_receive(struct rtree_t * rtree, struct _MessageT 
     struct _MessageT *response = message_t__unpack(NULL, 1000, response_buffer);
 
     if(response == NULL){
-        printf("Error unpacking response\n");
+        perror("Error unpacking response\n");
         return NULL;
     }
 

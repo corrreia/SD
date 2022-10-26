@@ -67,7 +67,6 @@ int network_main_loop(int listening_socket){
     int client_socket;
     socklen_t client_addr_size;// = sizeof(client_addr);
 
-    MessageT *msg;
     signal(SIGINT, ctrl_c_handler);
 
     printf("Waiting for connections...\n");
@@ -75,20 +74,27 @@ int network_main_loop(int listening_socket){
     while((client_socket = accept(listening_socket, (struct sockaddr *) &client_addr, &client_addr_size)) != -1){
         printf("Connection accepted\n");
     
-        msg = network_receive(client_socket);
-        if(msg == NULL){
-            perror("Error receiving message\n");  //IF THISM IS A PRINTF THE PROGRAM CRASHES wtf
-            return -1;
-        }
+        int receiving_info = 0;
+        while(receiving_info != 1){
 
-        // if(invoke(msg) == -1){  //FIXME: THIS IS CRASHING THE SERVER
-        //     perror("Error invoking function\n"); 
-        //     return -1;
-        // }
+            struct _MessageT *message = network_receive(client_socket);
 
-        if(network_send(client_socket, msg) == -1){
-            perror("Error sending message\n");
-            return -1;
+            // caso para o quit
+            // if(message == NULL){
+            //     printf("Client Disconnected!\n");
+            //     receiving_info = 1;
+            //     close(client_socket);
+            //     continue;
+            // }
+        
+            invoke(message);
+
+            int value_send = network_send(client_socket,message);
+
+            if(value_send == -1){
+                close(client_socket);
+                return -1;
+            }
         }
 
         close(client_socket);
@@ -98,42 +104,38 @@ int network_main_loop(int listening_socket){
     return 0;
 }
 
+
 /* Esta função deve:
  * - Ler os bytes da rede, a partir do client_socket indicado;
  * - De-serializar estes bytes e construir a mensagem com o pedido,
  *   reservando a memória necessária para a estrutura message_t.
  */
 struct _MessageT *network_receive(int client_socket){
-    int bytes_read;
-    int msg_size;
-    char *buffer;
-    MessageT *msg;
-
-    bytes_read = read(client_socket, &msg_size, sizeof(int));
-    if(bytes_read == -1){
-        perror("Error reading message size");
+    int len_received;
+    int value;
+    if( (value = read(client_socket,&len_received, sizeof(int))) == 0){
         return NULL;
     }
 
-    buffer = malloc(msg_size);
-    if(buffer == NULL){
-        perror("Error allocating memory for buffer");
-        return NULL;
+    len_received = ntohl(len_received);
+
+    uint8_t str [len_received];
+
+    int amount_read = 0;
+    int result;
+
+    while(amount_read < len_received){
+        result = read(client_socket, str + amount_read, len_received - amount_read);
+        if(result < 1){
+            break;
+        }
+        amount_read += result;
     }
 
-    bytes_read = read(client_socket, buffer, msg_size);
-    if(bytes_read == -1){
-        perror("Error reading message");
-        return NULL;
-    }
+    str[len_received] = '\0';
 
-    msg = message_t__unpack(NULL, msg_size,(u_int8_t *) buffer);  
-    if(msg == NULL){
-        perror("Error unpacking message");
-        return NULL;
-    }
+    struct Message_T *msg = message_t__unpack(NULL,len_received,str);
 
-    free(buffer);
     return msg;
 }
 
@@ -143,15 +145,23 @@ struct _MessageT *network_receive(int client_socket){
  * - Enviar a mensagem serializada, através do client_socket.
  */
 int network_send(int client_socket, struct _MessageT *msg){
-    int bytes_written;
-    int size = message_t__get_packed_size(msg);
-    char *buffer = (char *) malloc(sizeof(char) * size);
+    int len = message_t__get_packed_size(msg);
+    uint8_t str[len];
 
-    message_t__pack(msg,(u_int8_t *) buffer);
+    message_t__pack(msg,str);
 
-    bytes_written = write(client_socket, buffer, size);
+    len = htonl(len);
 
-    if(bytes_written == -1){
+    int value = write(client_socket,&len,sizeof(int));
+
+    if(value == -1){
+        perror("Error writing to socket");
+        return -1;
+    }
+
+    value = write(client_socket,str,sizeof(str));
+
+    if(value == -1){
         perror("Error writing to socket");
         return -1;
     }

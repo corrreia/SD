@@ -27,6 +27,7 @@ struct rtree_t *rtree_connect(const char *address_port){
     }
 
     struct rtree_t *rtree = (struct rtree_t *) malloc(sizeof(struct rtree_t));
+
     if(rtree == NULL){
         printf("Error allocating memory for rtree");
         return NULL;
@@ -47,16 +48,14 @@ struct rtree_t *rtree_connect(const char *address_port){
     rtree->server.sin_family = AF_INET;
     rtree->server.sin_port = htons(atoi(port));
 
-    if(inet_pton(AF_INET, address, &rtree->server.sin_addr) <= 0){
-        printf("Error converting address\n");
-        rtree_disconnect(rtree);
-        free(ap_copy);
+    if(inet_pton(AF_INET, address, &rtree->server.sin_addr) < 1){
+        perror("Error converting address\n");
         return NULL;
     }
 
     if(network_connect(rtree) < 0){
-        //printf("Error connecting  to server\n");
-        close(rtree->socket);
+        perror("Error connecting  to server\n");
+        rtree_disconnect(rtree);
         free(ap_copy);
         return NULL;
     }
@@ -94,34 +93,48 @@ int rtree_put(struct rtree_t *rtree, struct entry_t *entry){
     }
 
     //create entry
-    struct _MessageT__Entry entry_msg = MESSAGE_T__ENTRY__INIT;
-    entry_msg.key = entry->key;
-    entry_msg.value.len = entry->value->datasize; 
-    entry_msg.value.data = (u_int8_t *) malloc(entry->value->datasize);
-    memcpy(entry_msg.value.data, entry->value->data, entry->value->datasize);
+    struct _MessageT *msg = (struct _MessageT *) malloc(sizeof(struct _MessageT));
+    if(msg == NULL) return -1;
     
-    //create message to send
-    struct _MessageT msg = MESSAGE_T__INIT;
-    msg.opcode = 50;
-    msg.c_type = 30;
-    msg.entry = &entry_msg;
+    message_t__init(msg);
+
+    msg->entry = (struct _MessageT__Entry *) malloc(sizeof(struct _MessageT__Entry));
+    
+    if(msg->entry == NULL){
+        message_t__free_unpacked(msg, NULL);
+        return -1;
+    }
+
+    message_t__entry__init(msg->entry);
+
+    msg->entry->key = entry->key;
+
+    msg->entry->value = (struct _MessageT__Data *) malloc(sizeof(struct _MessageT__Data));
+    if(msg->entry->value == NULL){
+        message_t__free_unpacked(msg, NULL);
+        return -1;
+    }
+
+    message_t__data__init(msg->entry->value);
+
+    msg->entry->value->datasize = entry->value->datasize;
+    msg->entry->value->data = entry->value->data;
+    msg->opcode = MESSAGE_T__OPCODE__OP_PUT;
+    msg->c_type = MESSAGE_T__C_TYPE__CT_ENTRY;
 
     //send message
-    struct _MessageT *response = network_send_receive(rtree, &msg);
+    msg = network_send_receive(rtree, msg);
 
-    if(response == NULL){
-        printf("Error sending message stub\n");
+    if(msg == NULL){
         return -1;
     }
 
-    if(response->opcode == 51){
-        printf("Success, entry added\n");
-    }
-
-    if(response->opcode == 99){
-        printf("Error, entry not added\n");
+    if(msg->opcode == MESSAGE_T__OPCODE__OP_ERROR){
+        message_t__free_unpacked(msg, NULL);
         return -1;
     }
+
+    message_t__free_unpacked(msg, NULL);
 
     return 0;
 }
@@ -135,30 +148,29 @@ struct data_t *rtree_get(struct rtree_t *rtree, char *key){
         return NULL;
     }
 
-    //create message to send
-    struct _MessageT msg = MESSAGE_T__INIT;
-    msg.opcode = 40;
-    msg.c_type = 10;
-    msg.key = key;
+    struct _MessageT *msg = (struct _MessageT *) malloc(sizeof(struct _MessageT));
+    if(msg == NULL) return NULL;
+
+    message_t__init(msg);
+
+    msg->key = key;
+    msg->opcode = MESSAGE_T__OPCODE__OP_GET;
+    msg->c_type = MESSAGE_T__C_TYPE__CT_KEY;
 
     //send message
-    struct _MessageT *response = network_send_receive(rtree, &msg);
+    msg = network_send_receive(rtree, msg);
 
-    if(response == NULL){
-        //printf("Error sending message");
+    if(msg == NULL){
         return NULL;
     }
 
-    if(response->opcode == 41){
-        //printf("Success, entry found");
-        struct data_t *data = data_create2(response->value.len, response->value.data);
-        return data;
-    }
-
-    if(response->opcode == 99){
-        //printf("Error, entry not found");
+    if(msg->opcode == MESSAGE_T__OPCODE__OP_ERROR){
+        message_t__free_unpacked(msg, NULL);
         return NULL;
     }
+
+    struct data_t *data = data_create2(msg->entry->value->datasize, msg->entry->value->data);
+    message_t__free_unpacked(msg, NULL);
 
     return NULL;
 }
@@ -173,31 +185,30 @@ int rtree_del(struct rtree_t *rtree, char *key){
         return -1;
     }
 
-    //create message to send
-    struct _MessageT msg = MESSAGE_T__INIT;
-    msg.opcode = 30;
-    msg.c_type = 10;
-    msg.key = key;
+    struct _MessageT *msg = (struct _MessageT *) malloc(sizeof(struct _MessageT));
+    if(msg == NULL) return -1;
+
+    message_t__init(msg);
+
+    msg->key = key;
+    msg->opcode = MESSAGE_T__OPCODE__OP_DEL;
+    msg->c_type = MESSAGE_T__C_TYPE__CT_KEY;
 
     //send message
-    struct _MessageT *response = network_send_receive(rtree, &msg);
+    msg = network_send_receive(rtree, msg);
 
-    if(response == NULL){
-        //printf("Error sending message");
+    if(msg == NULL){
         return -1;
     }
 
-    if(response->opcode == 31){
-        //printf("Success, entry deleted");
-        return 0;
-    }
-
-    if(response->opcode == 99){
-        //printf("Error, entry not deleted");
+    if(msg->opcode == MESSAGE_T__OPCODE__OP_ERROR){
+        message_t__free_unpacked(msg, NULL);
         return -1;
     }
 
-    return -1;
+    message_t__free_unpacked(msg, NULL);
+
+    return 0;
 }
 
 /* Devolve o número de elementos contidos na árvore.
@@ -208,30 +219,30 @@ int rtree_size(struct rtree_t *rtree){
         return -1;
     }
 
-    //create message to send
-    struct _MessageT msg = MESSAGE_T__INIT;
-    msg.opcode = 10;
-    msg.c_type = 70;
+    struct _MessageT *msg = (struct _MessageT *) malloc(sizeof(struct _MessageT));
+    if(msg == NULL) return -1;
+
+    message_t__init(msg);
+
+    msg->opcode = MESSAGE_T__OPCODE__OP_SIZE;
+    msg->c_type = MESSAGE_T__C_TYPE__CT_NONE;
 
     //send message
-    struct _MessageT *response = network_send_receive(rtree, &msg);
+    msg = network_send_receive(rtree, msg);
 
-    if(response == NULL){
-        //printf("Error sending message");
+    if(msg == NULL){
         return -1;
     }
 
-    if(response->opcode == 11){
-        //printf("Success, size found");
-        return response->result;
-    }
-
-    if(response->opcode == 99){
-        //printf("Error, size not found");
+    if(msg->opcode == MESSAGE_T__OPCODE__OP_ERROR){
+        message_t__free_unpacked(msg, NULL);
         return -1;
     }
 
-    return -1;
+    int size = msg->result;
+    message_t__free_unpacked(msg, NULL);
+
+    return size;
 }
 
 /* Função que devolve a altura da árvore.
@@ -242,30 +253,30 @@ int rtree_height(struct rtree_t *rtree){
         return -1;
     }
 
-    //create message to send
-    struct _MessageT msg = MESSAGE_T__INIT;
-    msg.opcode = 20;
-    msg.c_type = 70;
+    struct _MessageT *msg = (struct _MessageT *) malloc(sizeof(struct _MessageT));
+    if(msg == NULL) return -1;
+
+    message_t__init(msg);
+
+    msg->opcode = MESSAGE_T__OPCODE__OP_HEIGHT;
+    msg->c_type = MESSAGE_T__C_TYPE__CT_NONE;
 
     //send message
-    struct _MessageT *response = network_send_receive(rtree, &msg);
+    msg = network_send_receive(rtree, msg);
 
-    if(response == NULL){
-        //printf("Error sending message");
+    if(msg == NULL){
         return -1;
     }
 
-    if(response->opcode == 21){
-        //printf("Success, height found");
-        return response->result;
-    }
-
-    if(response->opcode == 99){
-        //printf("Error, height not found");
+    if(msg->opcode == MESSAGE_T__OPCODE__OP_ERROR){
+        message_t__free_unpacked(msg, NULL);
         return -1;
     }
 
-    return -1;
+    int height = msg->result;
+    message_t__free_unpacked(msg, NULL);
+
+    return height;
 }
 
 /* Devolve um array de char* com a cópia de todas as keys da árvore,
@@ -277,35 +288,37 @@ char **rtree_get_keys(struct rtree_t *rtree){
         return NULL;
     }
 
-    //create message to send
-    struct _MessageT msg = MESSAGE_T__INIT;
-    msg.opcode = 60;
-    msg.c_type = 70;
+    struct _MessageT *msg = (struct _MessageT *) malloc(sizeof(struct _MessageT));
+    if(msg == NULL) return NULL;
+
+    message_t__init(msg);
+
+    msg->opcode = MESSAGE_T__OPCODE__OP_GETKEYS;
+    msg->c_type = MESSAGE_T__C_TYPE__CT_NONE;
 
     //send message
-    struct _MessageT *response = network_send_receive(rtree, &msg);
+    msg = network_send_receive(rtree, msg);
 
-    if(response == NULL){
-        //printf("Error sending message");
+    if(msg == NULL){
         return NULL;
     }
 
-    if(response->opcode == 61){
-        //printf("Success, keys found");
-        char **keys = malloc(sizeof(char*) * (response->n_keys + 1));
-        for(int i = 0; i < response->n_keys; i++){
-            keys[i] = strdup(response->keys[i]);
-        }
-        keys[response->n_keys] = NULL;
-        return keys;
-    }
-
-    if(response->opcode == 99){
-        //printf("Error, keys not found");
+    if(msg->opcode == MESSAGE_T__OPCODE__OP_ERROR){
+        message_t__free_unpacked(msg, NULL);
         return NULL;
     }
 
-    return NULL;
+    char **keys = (char **) malloc(sizeof(char *) * (msg->n_keys + 1));
+
+    for(int i = 0; i < msg->n_keys; i++){
+        keys[i] = strdup(msg->keys[i]);
+    }
+
+    keys[msg->n_keys] = NULL;
+
+    message_t__free_unpacked(msg, NULL);
+
+    return keys;
 }
 
 /* Devolve um array de void* com a cópia de todas os values da árvore,
@@ -317,33 +330,35 @@ void **rtree_get_values(struct rtree_t *rtree){
         return NULL;
     }
 
-    //create message to send
-    struct _MessageT msg = MESSAGE_T__INIT;
-    msg.opcode = 70;
-    msg.c_type = 70;
+    struct _MessageT *msg = (struct _MessageT *) malloc(sizeof(struct _MessageT));
+    if(msg == NULL) return NULL;
 
-    //send message
-    struct _MessageT *response = network_send_receive(rtree, &msg);
+    message_t__init(msg);
 
-    if(response == NULL){
-        //printf("Error sending message");
+    msg->opcode = MESSAGE_T__OPCODE__OP_GETVALUES;
+    msg->c_type = MESSAGE_T__C_TYPE__CT_NONE;
+
+    //send message 
+    msg = network_send_receive(rtree, msg);
+
+    if(msg == NULL){
         return NULL;
     }
 
-    if(response->opcode == 71){
-        //printf("Success, values found");
-        void **values = malloc(sizeof(void*) * (response->n_values + 1));
-        for(int i = 0; i < response->n_values; i++){
-            values[i] = data_create2(response->values[i].len, response->values[i].data);
-        }
-        values[response->n_values] = NULL;
-        return values;
-    }
-
-    if(response->opcode == 99){
-        //printf("Error, values not found");
+    if(msg->opcode == MESSAGE_T__OPCODE__OP_ERROR){
+        message_t__free_unpacked(msg, NULL);
         return NULL;
     }
 
-    return NULL;
+    void **values = (void **) malloc(sizeof(void *) * (msg->n_values + 1));
+
+    for(int i = 0; i < msg->n_values; i++){
+        values[i] = strdup(msg->values[i]);
+    }
+
+    values[msg->n_values] = NULL;
+
+    message_t__free_unpacked(msg, NULL);
+
+    return values;
 }
