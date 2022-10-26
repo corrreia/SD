@@ -16,23 +16,23 @@ int main(int argc, char **argv){
     int server_port = atoi(argv[1]);
 
     tree_skel_init();
-    /* inicialização da camada de rede */
+
     int socket = network_server_init(server_port);
 
     if(socket == -1){
-        printf("Error initializing network server\n");
-        tree_skel_destroy(); //free tree if server fails to initialize 
-        return -1;
+        printf("Error initializing server\n");
+        network_server_close();
+        tree_skel_destroy();
+        exit(1);
     }
 
     printf("TCP socket initialized on port %d\n", server_port);
 
     if(network_main_loop(socket)){
         printf("Error in main loop\n");
-        tree_skel_destroy();
-        return -1;
     }
 
+    network_server_close();
     tree_skel_destroy();
     return 0;
 }

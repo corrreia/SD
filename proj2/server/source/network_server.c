@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include "../include/network_server.h"
 #include "../include/tree_skel.h"
@@ -15,12 +16,22 @@
 struct sockaddr_in server_addr;
 int server_socket;
 
+void ctrl_c_handler(int signum){
+    printf("CTRL-C detected, closing...\n");
+    network_server_close();
+    exit(0);
+}
+
 /* Função para preparar uma socket de receção de pedidos de ligação
  * num determinado porto.
  * Retornar descritor do socket (OK) ou -1 (erro).
  */
 int network_server_init(short port){
     server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0){
+        printf("setsockopt(SO_REUSEADDR) failed");
+        return -1;
+    }
 
     if(server_socket == -1){
         perror("Error creating socket");
@@ -52,41 +63,38 @@ int network_server_init(short port){
  * - Enviar a resposta ao cliente usando a função network_send.
  */
 int network_main_loop(int listening_socket){
-    struct sockaddr_in client_addr;
+    struct sockaddr client_addr;
     int client_socket;
-    socklen_t client_addr_size = sizeof(client_addr);
+    socklen_t client_addr_size;// = sizeof(client_addr);
 
     MessageT *msg;
-    int response;
+    signal(SIGINT, ctrl_c_handler);
 
     printf("Waiting for connections...\n");
 
-    while(1){
-        client_socket = accept(listening_socket, (struct sockaddr *) &client_addr, &client_addr_size);
-        if(client_socket == -1){
-            perror("Error accepting connection");
-            return -1;
-        }
-
+    while((client_socket = accept(listening_socket, (struct sockaddr *) &client_addr, &client_addr_size)) != -1){
+        printf("Connection accepted\n");
+    
         msg = network_receive(client_socket);
         if(msg == NULL){
-            perror("Error receiving message");
+            perror("Error receiving message\n");  //IF THISM IS A PRINTF THE PROGRAM CRASHES wtf
             return -1;
         }
 
-        response = invoke(msg);
-        if(response == -1){
-            perror("Error invoking tree_skel");
-            return -1;
-        }
+        // if(invoke(msg) == -1){  //FIXME: THIS IS CRASHING THE SERVER
+        //     perror("Error invoking function\n"); 
+        //     return -1;
+        // }
 
         if(network_send(client_socket, msg) == -1){
-            perror("Error sending response");
+            perror("Error sending message\n");
             return -1;
         }
 
         close(client_socket);
+        printf("Connection closed\n");
     }
+
     return 0;
 }
 
@@ -119,7 +127,7 @@ struct _MessageT *network_receive(int client_socket){
         return NULL;
     }
 
-    msg = message_t__unpack(NULL, msg_size, buffer);
+    msg = message_t__unpack(NULL, msg_size,(u_int8_t *) buffer);  
     if(msg == NULL){
         perror("Error unpacking message");
         return NULL;
@@ -139,7 +147,7 @@ int network_send(int client_socket, struct _MessageT *msg){
     int size = message_t__get_packed_size(msg);
     char *buffer = (char *) malloc(sizeof(char) * size);
 
-    message_t__pack(msg, buffer);
+    message_t__pack(msg,(u_int8_t *) buffer);
 
     bytes_written = write(client_socket, buffer, size);
 
@@ -155,8 +163,8 @@ int network_send(int client_socket, struct _MessageT *msg){
  * network_server_init().
  */
 int network_server_close(){
-    //close(server_socket);
-    //free(server_addr);
+    close(server_socket);
+    //free(server_addr); wtf
     return 0;
 }
 

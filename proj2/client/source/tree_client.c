@@ -11,23 +11,14 @@ int main(int argc, char **argv){
         printf("Usage: %s <server>:<port>\n", argv[0]);
         return -1;
     }
-    
-    char *server_ip = strtok(argv[1], ":");
-    char *server_port = strtok(NULL, ":");
-
-    printf("server ip: %s \nserver port: %s \n", server_ip, server_port);
 
     printf("Connecting to server...\n");
 
     struct rtree_t *rtree = rtree_connect(argv[1]);
-
     if(rtree == NULL){
         printf("Error connecting to server\n");
         return -1;
     }
-
-    printf("Connected to server\n");
-
 
     char *command = NULL;
     size_t command_size = 0;

@@ -18,22 +18,21 @@
  * - Retornar 0 (OK) ou -1 (erro).
  */
 int network_connect(struct rtree_t *rtree){
-    int socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if(socket_fd < 0){
-        printf("Error creating socket");
-        return -1;
-    }
 
-    if(connect(socket_fd, (struct sockaddr *) &rtree->server, sizeof(rtree->server)) < 0){  //FIXME: GET ERROR HERE
+    rtree->socket = socket(AF_INET, SOCK_STREAM, 0);
+    // if(rtree->socket = socket(AF_INET, SOCK_STREAM, 0) < 0){
+    //     printf("Error creating socket");
+    //     free(rtree);
+    //     return -1;
+    // }
+
+    if(connect(rtree->socket, (struct sockaddr *) &rtree->server, sizeof(rtree->server)) < 0){
         printf("Error connecting to server");
-        //print rtree->server
-        printf("rtree->server.sin_family: %d \n rtree->server.sin_port: %d \n rtree->server.sin_addr.s_addr: %d \n rtree->server.sin_zero: %s \n", rtree->server.sin_family, rtree->server.sin_port, rtree->server.sin_addr.s_addr, rtree->server.sin_zero);
-        close(socket_fd);
+        close(rtree->socket);
+        free(rtree);
         return -1;
     }
-
-    rtree->socket = socket_fd;
-
+    
     return 0;
 }
 
@@ -55,19 +54,24 @@ struct _MessageT *network_send_receive(struct rtree_t * rtree, struct _MessageT 
 
     //send msg
     if(send(socket_fd, msg_buffer, msg_size, 0) < 0){
-        //printf("Error sending message");
+        printf("Error sending message network\n");
         return NULL;
     }
 
     //receive response
     uint8_t *response_buffer = (uint8_t *) malloc(1000);
     if(recv(socket_fd, response_buffer, 1000, 0) < 0){
-        //printf("Error receiving response");
+        printf("Error receiving response\n");
         return NULL;
     }
 
     //deserialize response
     struct _MessageT *response = message_t__unpack(NULL, 1000, response_buffer);
+
+    if(response == NULL){
+        printf("Error unpacking response\n");
+        return NULL;
+    }
 
     return response;
 }
@@ -76,5 +80,14 @@ struct _MessageT *network_send_receive(struct rtree_t * rtree, struct _MessageT 
  * network_connect().
  */
 int network_close(struct rtree_t * rtree){
-    return close(rtree->socket);
+    if(rtree == NULL){
+        return -1;
+    }
+    
+    if(close(rtree->socket) < 0){
+        return -1;
+    }
+
+    free(rtree);
+    return 0;
 }

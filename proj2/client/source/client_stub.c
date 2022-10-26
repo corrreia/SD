@@ -27,42 +27,40 @@ struct rtree_t *rtree_connect(const char *address_port){
     }
 
     struct rtree_t *rtree = (struct rtree_t *) malloc(sizeof(struct rtree_t));
+    if(rtree == NULL){
+        printf("Error allocating memory for rtree");
+        return NULL;
+    }    
 
     char *ap_copy = strdup(address_port);
-
     if(ap_copy == NULL){
         return NULL;
     }
 
-    char *address = strtok(ap_copy, ":");   //FIXME: Segmentation fault
+    char *address = strtok(ap_copy, ":");  
     char *port = strtok(NULL, "\0");
 
     printf("address: %s \nport: %s \n", address, port);
 
     //populate rtree struct and call network_connect()
 
-    if(rtree == NULL){
-        printf("Error allocating memory for rtree");
-        free(ap_copy);
-        return NULL;
-    }    
-
     rtree->server.sin_family = AF_INET;
     rtree->server.sin_port = htons(atoi(port));
 
     if(inet_pton(AF_INET, address, &rtree->server.sin_addr) <= 0){
-        printf("Error converting address");
+        printf("Error converting address\n");
+        rtree_disconnect(rtree);
         free(ap_copy);
-        free(rtree);
         return NULL;
     }
 
     if(network_connect(rtree) < 0){
         //printf("Error connecting  to server\n");
         close(rtree->socket);
+        free(ap_copy);
         return NULL;
     }
-
+    
     free(ap_copy);
 
     return rtree;
@@ -74,12 +72,10 @@ struct rtree_t *rtree_connect(const char *address_port){
  */
 int rtree_disconnect(struct rtree_t *rtree){
     if(rtree == NULL){
-        //printf("Error: rtree is NULL");
         return -1;
     }
 
     if(network_close(rtree) < 0){
-        //printf("Error closing connection");
         return -1;
     }
 
@@ -93,15 +89,16 @@ int rtree_disconnect(struct rtree_t *rtree){
  */
 int rtree_put(struct rtree_t *rtree, struct entry_t *entry){
     if(rtree == NULL || entry == NULL){
-        //printf("Error: rtree or entry is NULL");
+        printf("Error: rtree or entry is NULL");
         return -1;
     }
 
     //create entry
     struct _MessageT__Entry entry_msg = MESSAGE_T__ENTRY__INIT;
     entry_msg.key = entry->key;
-    entry_msg.value.len = entry->value->datasize;  //FIXME: might me better to use memcpy
-    entry_msg.value.data = entry->value->data;
+    entry_msg.value.len = entry->value->datasize; 
+    entry_msg.value.data = (u_int8_t *) malloc(entry->value->datasize);
+    memcpy(entry_msg.value.data, entry->value->data, entry->value->datasize);
     
     //create message to send
     struct _MessageT msg = MESSAGE_T__INIT;
@@ -113,16 +110,16 @@ int rtree_put(struct rtree_t *rtree, struct entry_t *entry){
     struct _MessageT *response = network_send_receive(rtree, &msg);
 
     if(response == NULL){
-        //printf("Error sending message");
+        printf("Error sending message stub\n");
         return -1;
     }
 
     if(response->opcode == 51){
-        //printf("Success, entry added");
+        printf("Success, entry added\n");
     }
 
     if(response->opcode == 99){
-        //printf("Error, entry not added");
+        printf("Error, entry not added\n");
         return -1;
     }
 

@@ -6,4 +6,4 @@ make clean
 echo "--MAKE--"
 make
 echo "--RUNNING--"
-./binary/tree_client 127.0.0.1:8888
+./binary/tree_client 127.0.0.1:1234

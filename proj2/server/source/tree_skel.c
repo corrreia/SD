@@ -121,7 +121,8 @@ int invoke(struct _MessageT *msg){
             if(msg->c_type == 70){
                 msg->opcode = 71;
                 msg->c_type = 50;
-                msg->values = tree_get_values(tree);
+                //using memcpy to copy the array of data_t
+                memcpy(msg->values, tree_get_values(tree), tree_size(tree) * sizeof(struct data_t));
             }
             else{
                 msg->opcode = 99;
