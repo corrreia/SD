@@ -1,18 +1,10 @@
-# 	make client-lib.o: Compilar os ficheiros client_stub.c, network-client.c,
-# data.c e entry.c (e eventuais ficheiros adicionais “.c” criados na concretização
-# do cliente), sem a aplicação interativa com o main(), criando uma biblioteca client-lib.o
-# (Usar linker ld com opção -r: ld -r in1.o in2.o [...] -o clientlib.o);
-
-# tree-client: Compilar todo o código que pertence ao cliente, criando a aplicação cliente
-# tree-client;
-
-# tree-server: Compilar todo o código que pertence ao servidor, criando a aplicação
-# servidor tree-server;
-
-# clean: Remover todos os ficheiros criados pelos targets acima
-
-#server files are in server/
-#client files are in client/
+# /* -------------------------------------------------------------
+# * Grupo: 49
+# * Membros: Miguel Pato, fc57102
+# *          Tomás Correia, fc56372
+# *          João Figueiredo, fc53524
+# *
+# */
 
 PROTOC_DIR = /usr/
 
