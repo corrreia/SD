@@ -169,10 +169,13 @@ struct data_t *rtree_get(struct rtree_t *rtree, char *key){
         return NULL;
     }
 
-    struct data_t *data = data_create2(msg->entry->value->datasize, msg->entry->value->data);
+    printf("msg->entry->value->datasize: %d\n", msg->entry->value->datasize);
+    printf("msg->entry->value->data: %s\n", msg->entry->value->data);
+
+    //struct data_t *data = data_create2(msg->value->datasize, msg->value->data);
     message_t__free_unpacked(msg, NULL);
 
-    return NULL;
+    return NULL;//data;
 }
 
 /* Função para remover um elemento da árvore. Vai libertar 
@@ -353,7 +356,7 @@ void **rtree_get_values(struct rtree_t *rtree){
     void **values = (void **) malloc(sizeof(void *) * (msg->n_values + 1));
 
     for(int i = 0; i < msg->n_values; i++){
-        values[i] = strdup(msg->values[i]);
+        values[i] = strdup((char *)msg->values[i]);
     }
 
     values[msg->n_values] = NULL;

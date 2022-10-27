@@ -36,6 +36,36 @@ int main(int argc, char **argv){
             break;  // exit loop
         }
 
+        // getkeys
+        else if(strcmp(command, "getkeys") == 0){
+            char **keys = rtree_get_keys(rtree);
+            if(keys == NULL){
+                printf("Error getting keys\n");
+            }
+            else{
+                printf("Keys: ");
+                for(int i = 0; keys[i] != NULL; i++){
+                    printf("%p ", keys[i]);
+                }
+                printf("\n");
+            }
+        }
+
+        // getvalues
+        else if(strcmp(command, "getvalues") == 0){
+            struct data_t **values = (struct data_t **) rtree_get_values(rtree);
+            if(values == NULL){
+                printf("Error getting values\n");
+            }
+            else{
+                printf("Values: ");
+                for(int i = 0; values[i] != NULL; i++){
+                    printf("%p ", values[i]->data);
+                }
+                printf("\n");
+            }
+        }
+        
         //put <key> <data>
         else if(strncmp(command, "put", 3) == 0){
             char *key = strtok(command, " ");
@@ -117,35 +147,6 @@ int main(int argc, char **argv){
             }
         }
 
-        // getkeys
-        else if(strcmp(command, "getkeys") == 0){
-            char **keys = rtree_get_keys(rtree);
-            if(keys == NULL){
-                printf("Error getting keys\n");
-            }
-            else{
-                printf("Keys: ");
-                for(int i = 0; keys[i] != NULL; i++){
-                    printf("%p ", keys[i]);
-                }
-                printf("\n");
-            }
-        }
-
-        // getvalues
-        else if(strcmp(command, "getvalues") == 0){
-            struct data_t **values = (struct data_t **) rtree_get_values(rtree);
-            if(values == NULL){
-                printf("Error getting values\n");
-            }
-            else{
-                printf("Values: ");
-                for(int i = 0; values[i] != NULL; i++){
-                    printf("%p ", values[i]->data);
-                }
-                printf("\n");
-            }
-        }
 
         else if(strcmp(command, "help") == 0){
             printf("Avaliable commands:\n");

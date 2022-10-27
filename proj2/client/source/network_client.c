@@ -8,6 +8,7 @@
 #include "../include/client_stub.h"
 #include "../include/client_stub-private.h"
 #include "../include/sdmessage.pb-c.h"
+#include "../include/message-private.h"
 
 /* Esta função deve:
  * - Obter o endereço do servidor (struct sockaddr_in) a base da
@@ -49,31 +50,30 @@ int network_connect(struct rtree_t *rtree){
 struct _MessageT *network_send_receive(struct rtree_t * rtree, struct _MessageT *msg){
     int socket_fd = rtree->socket;
 
-    //serialize msg
-    size_t msg_size = message_t__get_packed_size(msg);
-    uint8_t *msg_buffer = (uint8_t *) malloc(msg_size);
-    message_t__pack(msg, msg_buffer);
+    int msg_size = message_t__get_packed_size(msg);
+    int msg_size_n = htonl(msg_size);
 
-    //send msg
-    if(send(socket_fd, msg_buffer, msg_size, 0) < 0){
-        perror("Error sending message network\n");
-        return NULL;
-    }
+    uint8_t *msg_serialized = (uint8_t *) malloc(msg_size);
 
-    //receive response
-    uint8_t *response_buffer = (uint8_t *) malloc(1000);
-    if(recv(socket_fd, response_buffer, 1000, 0) < 0){
-        perror("Error receiving response\n");
-        return NULL;
-    }
+    message_t__pack(msg, msg_serialized);
 
-    //deserialize response
-    struct _MessageT *response = message_t__unpack(NULL, 1000, response_buffer);
+    int w = write(socket_fd, &msg_size_n, sizeof(int));
+    if(w < 0) return NULL;
+    write_all(socket_fd, msg_serialized, msg_size);
 
-    if(response == NULL){
-        perror("Error unpacking response\n");
-        return NULL;
-    }
+    free(msg_serialized);
+
+    int len_received;
+    int r = read(socket_fd, &len_received, sizeof(int));
+    if (r < 0) return NULL;
+    len_received = ntohl(len_received);
+
+    uint8_t *str = (uint8_t *) malloc(len_received);
+    read_all(socket_fd, str, len_received);
+
+    str[len_received] = '\0';
+    
+    struct _MessageT *response = message_t__unpack(NULL, len_received, str);
 
     return response;
 }

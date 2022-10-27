@@ -10,8 +10,7 @@
 #include "../include/network_server.h"
 #include "../include/tree_skel.h"
 #include "../include/sdmessage.pb-c.h"
-
-
+#include "../include/message-private.h"
 
 struct sockaddr_in server_addr;
 int server_socket;
@@ -79,13 +78,17 @@ int network_main_loop(int listening_socket){
 
             struct _MessageT *message = network_receive(client_socket);
 
-            // caso para o quit
-            // if(message == NULL){
+            //caso para o quit
+            // if(message == NULL){   
             //     printf("Client Disconnected!\n");
             //     receiving_info = 1;
             //     close(client_socket);
             //     continue;
             // }
+
+            printf("Received message from client\n");
+            printf("Message opcode: %d\n", message->opcode);
+            printf("Message c_type: %d\n", message->c_type);
         
             invoke(message);
 
@@ -111,32 +114,25 @@ int network_main_loop(int listening_socket){
  *   reservando a memória necessária para a estrutura message_t.
  */
 struct _MessageT *network_receive(int client_socket){
-    int len_received;
-    int value;
-    if( (value = read(client_socket,&len_received, sizeof(int))) == 0){
-        return NULL;
-    }
+    //FIRST read the size of the message, SECOND read the message
+    
+    MessageT *message = (MessageT *) malloc(sizeof(MessageT));
+    message_t__init(message);
 
-    len_received = ntohl(len_received);
+    int length = 0;
+    int i = read(client_socket, &length, sizeof(int));
+    if(i == -1) return NULL;
 
-    uint8_t str [len_received];
+    length = ntohl(length);
+    if(length == 0) return NULL;
 
-    int amount_read = 0;
-    int result;
+    char *buffer = (char *) malloc(length);
 
-    while(amount_read < len_received){
-        result = read(client_socket, str + amount_read, len_received - amount_read);
-        if(result < 1){
-            break;
-        }
-        amount_read += result;
-    }
+    read_all(client_socket,(u_int8_t *) buffer, length);
 
-    str[len_received] = '\0';
+    message = (struct _MessageT *) message_t__unpack(NULL, length, (uint8_t *) buffer);
 
-    struct Message_T *msg = message_t__unpack(NULL,len_received,str);
-
-    return msg;
+    return message;
 }
 
 /* Esta função deve:
@@ -145,28 +141,17 @@ struct _MessageT *network_receive(int client_socket){
  * - Enviar a mensagem serializada, através do client_socket.
  */
 int network_send(int client_socket, struct _MessageT *msg){
-    int len = message_t__get_packed_size(msg);
-    uint8_t str[len];
+    int length = message_t__get_packed_size(msg);
+    uint8_t *buffer = (uint8_t *) malloc(length);
+    message_t__pack(msg, buffer);
 
-    message_t__pack(msg,str);
+    length = htonl(length);
+    int i = write(client_socket, &length, sizeof(int));
+    length = ntohl(length);
 
-    len = htonl(len);
+    write_all(client_socket, buffer, length);
 
-    int value = write(client_socket,&len,sizeof(int));
-
-    if(value == -1){
-        perror("Error writing to socket");
-        return -1;
-    }
-
-    value = write(client_socket,str,sizeof(str));
-
-    if(value == -1){
-        perror("Error writing to socket");
-        return -1;
-    }
-
-    return 0;
+    return i;
 }
 
 /* A função network_server_close() liberta os recursos alocados por

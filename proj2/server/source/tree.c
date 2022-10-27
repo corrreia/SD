@@ -126,6 +126,8 @@ int tree_del(struct tree_t *tree, char *key){
     if(tree == NULL || key == NULL) return -1;
     if(tree->node == NULL) return -1;
 
+    
+
     //compare using entry_compare()
     struct entry_t *entry = entry_create(key, NULL);
     int comp = entry_compare(tree->node, entry);
