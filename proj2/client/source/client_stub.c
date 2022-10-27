@@ -169,9 +169,9 @@ struct data_t *rtree_get(struct rtree_t *rtree, char *key){
         message_t__free_unpacked(msg, NULL);
         return NULL;
     }
-    printf("msg->value->datasize: %d\n", msg->value->datasize);
-    printf("msg->value->data: %s\n", msg->value->data);
-    struct data_t *data = data_create2(msg->value->datasize, msg->value->data);
+    
+    struct data_t *data = data_create(msg->value->datasize);
+    memcpy(data->data, msg->value->data, msg->value->datasize);
     message_t__free_unpacked(msg, NULL);
 
     return data;
@@ -311,7 +311,7 @@ char **rtree_get_keys(struct rtree_t *rtree){
     }
 
     char **keys = (char **) malloc(sizeof(char *) * (msg->n_keys + 1));
-    
+
     for(int i = 0; i < msg->n_keys; i++){
         keys[i] = strdup(msg->keys[i]);
     }
@@ -355,7 +355,7 @@ void **rtree_get_values(struct rtree_t *rtree){
     void **values = (void **) malloc(sizeof(void *) * (msg->n_values + 1));
 
     for(int i = 0; i < msg->n_values; i++){
-        values[i] = strdup((char *)msg->values[i]);
+        values[i] = strdup(msg->values[i]);
     }
 
     values[msg->n_values] = NULL;

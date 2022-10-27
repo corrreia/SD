@@ -82,7 +82,7 @@ int network_main_loop(int listening_socket){
             message = network_receive(client_socket);
 
             if(message == NULL){
-                printf("NULL message\n");  //only works this print is here ??? WHAT THE ACTUAL FUCK
+                //printf("NULL message\n"); 
                 close(client_socket);
                 client_socket = -1;
             }

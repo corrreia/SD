@@ -273,7 +273,7 @@ void **tree_get_values(struct tree_t *tree){
     void **values = malloc((size+1)*sizeof(void*));
     if(values == NULL) return NULL;
     int i = 0;
-    
+
     if(tree->left != NULL) i = tree_get_values_aux(tree->left, values, i);   //handle left side
 
     values[i] = data_dup(tree->node->value);                                   //handle current root

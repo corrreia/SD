@@ -63,17 +63,17 @@ struct _MessageT *network_send_receive(struct rtree_t * rtree, struct _MessageT 
 
     free(msg_serialized);
 
-    int len_received;
-    int r = read(socket_fd, &len_received, sizeof(int));
+    int len_response;
+    int r = read(socket_fd, &len_response, sizeof(int));
     if (r < 0) return NULL;
-    len_received = ntohl(len_received);
+    len_response = ntohl(len_response);
 
-    uint8_t *str = (uint8_t *) malloc(len_received);
-    read_all(socket_fd, str, len_received);
+    uint8_t *str = (uint8_t *) malloc(len_response);
+    read_all(socket_fd, str, len_response);
 
-    str[len_received] = '\0';
+    str[len_response] = '\0';
     
-    struct _MessageT *response = message_t__unpack(NULL, len_received, str);
+    struct _MessageT *response = message_t__unpack(NULL, len_response, str);
 
     return response;
 }

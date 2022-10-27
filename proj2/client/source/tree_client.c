@@ -68,14 +68,16 @@ int main(int argc, char **argv){
 
         // getvalues
         else if(strcmp(command, "getvalues") == 0){
-            struct data_t **values = (struct data_t **) rtree_get_values(rtree);
+            char **values = rtree_get_values(rtree);
             if(values == NULL){
                 printf("Error getting values\n");
             }
             else{
                 printf("Values: ");
-                for(int i = 0; values[i] != NULL; i++){
-                    printf("%p ", values[i]->data);
+                int i = 0;
+                while(values[i] != NULL){
+                    printf("%s ", values[i]);
+                    i++;
                 }
                 printf("\n");
             }
@@ -119,10 +121,9 @@ int main(int argc, char **argv){
             else{
                 printf("Entry successfully found\n");
                 printf("Datasize: %d\n", data_t->datasize);
-                printf("Data: %s\n",(char *) data_t->data);  //FIXME: this is printing a pointer address
-                //data_destroy(data_t);
+                printf("Data: %s\n",data_t->data);  //FIXME: this is printing a pointer address
+                //data_destroy(data_t);  //! DO NOT FREE!!
             }
-
         }
 
         // del <key>

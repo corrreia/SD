@@ -137,21 +137,22 @@ int invoke(struct _MessageT *msg){
                 return -1;
             }
             break;
-        case MESSAGE_T__C_TYPE__CT_NONE: //OP_GETVALUES
+        case MESSAGE_T__OPCODE__OP_GETVALUES: //OP_GETVALUES
             if(msg->c_type == MESSAGE_T__C_TYPE__CT_NONE && tree_size(tree) > 0){
                 msg->opcode = MESSAGE_T__OPCODE__OP_GETVALUES + 1;
                 msg->c_type = MESSAGE_T__C_TYPE__CT_VALUES;
                 msg->n_values = tree_size(tree); 
-                //msg->values = tree_get_values(tree); //COULD NOT GET THIS TO WORK LIKE THIS
+                //msg->values = tree_get_values(tree); //COULD NOT GET THIS TO WORK LIKE THIS 
 
-                char **keys = tree_get_keys(tree);
-                int size = tree_size(tree);
-
-                for (int i = 0; i < size; i++){
-                    struct data_t *data = tree_get(tree, keys[i]);
-                    msg->values[i] = data->data;
-                    //data_destroy(data);
+                char **keys = tree_get_keys(tree);                                   //so we did it like this
+                char **values = (char **) malloc(sizeof(char *) * tree_size(tree));  //WORKS
+                //msg->values is a array of strings
+                int i = 0;
+                while(keys[i] != NULL){
+                    values[i] = tree_get(tree, keys[i])->data;
+                    i++;
                 }
+                msg->values = values;
 
             }
             else{
