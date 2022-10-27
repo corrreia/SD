@@ -1,3 +1,10 @@
+/* -------------------------------------------------------------
+* Grupo: 49
+* Membros: Miguel Pato, fc57102
+*          Tomás Correia, fc56372
+*          João Figueiredo, fc53524
+*
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -97,9 +104,9 @@ int invoke(struct _MessageT *msg){
                     //data_destroy(data);  //DONT DO THIS
                 }
                 else{
-                    msg->opcode = MESSAGE_T__OPCODE__OP_ERROR;
+                    msg->opcode = MESSAGE_T__OPCODE__OP_GET + 1;
                     msg->c_type = MESSAGE_T__C_TYPE__CT_NONE;
-                    return -1;
+                    //msg->value->datasize = 0;
                 }
             }
             else{

@@ -1,3 +1,10 @@
+/* -------------------------------------------------------------
+* Grupo: 49
+* Membros: Miguel Pato, fc57102
+*          Tomás Correia, fc56372
+*          João Figueiredo, fc53524
+*
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -68,6 +75,8 @@ int network_main_loop(int listening_socket){
     socklen_t client_addr_size = sizeof(client_addr);
 
     signal(SIGINT, ctrl_c_handler);
+    //signal() para ignorar sinais do tipo SIGPIPE
+    signal(SIGPIPE, SIG_IGN);
 
     printf("Waiting for connections...\n");
 

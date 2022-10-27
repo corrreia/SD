@@ -1,3 +1,10 @@
+/* -------------------------------------------------------------
+* Grupo: 49
+* Membros: Miguel Pato, fc57102
+*          Tomás Correia, fc56372
+*          João Figueiredo, fc53524
+*
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -31,6 +38,8 @@ int main(int argc, char **argv){
 
     //capture CTRL-C
     signal(SIGINT, handle_exit);
+    //signal() para ignorar sinais do tipo SIGPIPE
+    signal(SIGPIPE, SIG_IGN);
 
     char *command = NULL;
     size_t command_size = 0;
@@ -63,12 +72,13 @@ int main(int argc, char **argv){
                     i++;
                 }
                 printf("\n");
+                free(keys);
             }
         }
 
         // getvalues
         else if(strcmp(command, "getvalues") == 0){
-            char **values = rtree_get_values(rtree);
+            char **values = (char **) rtree_get_values(rtree);
             if(values == NULL){
                 printf("Error getting values\n");
             }
@@ -80,6 +90,7 @@ int main(int argc, char **argv){
                     i++;
                 }
                 printf("\n");
+                free(values);
             }
         }
         
@@ -102,6 +113,7 @@ int main(int argc, char **argv){
             else{
                 printf("Entry successfully put\n");
             }
+            //entry_destroy(entry_t);  CAN'T FREE ENTRY_T BECAUSE IT'S BEING USED BY RTREE
         }
 
         // get <key>
@@ -117,12 +129,13 @@ int main(int argc, char **argv){
             struct data_t *data_t = rtree_get(rtree, key);
             if(data_t == NULL){
                 printf("Error getting entry\n");
-            }
-            else{
+            }else if(data_t->datasize == 0){
+                printf("Entry not found\n");
+            }else{
                 printf("Entry successfully found\n");
                 printf("Datasize: %d\n", data_t->datasize);
-                printf("Data: %s\n",data_t->data);  //FIXME: this is printing a pointer address
-                //data_destroy(data_t);  //! DO NOT FREE!!
+                printf("Data: %s\n",(char *)data_t->data);  //FIXME: this is printing a pointer address
+                data_destroy(data_t);  //! DO NOT FREE!!
             }
         }
 

@@ -1,3 +1,10 @@
+/* -------------------------------------------------------------
+* Grupo: 49
+* Membros: Miguel Pato, fc57102
+*          Tomás Correia, fc56372
+*          João Figueiredo, fc53524
+*
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -75,6 +82,8 @@ struct _MessageT *network_send_receive(struct rtree_t * rtree, struct _MessageT 
     
     struct _MessageT *response = message_t__unpack(NULL, len_response, str);
 
+    free(str);
+    
     return response;
 }
 

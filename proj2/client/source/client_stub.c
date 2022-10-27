@@ -1,3 +1,10 @@
+/* -------------------------------------------------------------
+* Grupo: 49
+* Membros: Miguel Pato, fc57102
+*          Tomás Correia, fc56372
+*          João Figueiredo, fc53524
+*
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -168,6 +175,13 @@ struct data_t *rtree_get(struct rtree_t *rtree, char *key){
     if(msg->opcode == MESSAGE_T__OPCODE__OP_ERROR){
         message_t__free_unpacked(msg, NULL);
         return NULL;
+    }
+
+    if(msg->opcode == MESSAGE_T__OPCODE__OP_GET+1 &&
+        msg->c_type == MESSAGE_T__C_TYPE__CT_NONE){
+            message_t__free_unpacked(msg, NULL);
+            printf("Key not found\n");
+            return data_create(0);
     }
     
     struct data_t *data = data_create(msg->value->datasize);
