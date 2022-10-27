@@ -54,8 +54,7 @@ struct rtree_t *rtree_connect(const char *address_port){
     }
 
     if(network_connect(rtree) < 0){
-        perror("Error connecting  to server\n");
-        rtree_disconnect(rtree);
+        //rtree_disconnect(rtree);
         free(ap_copy);
         return NULL;
     }
@@ -78,7 +77,7 @@ int rtree_disconnect(struct rtree_t *rtree){
         return -1;
     }
 
-    free(rtree);
+    //free(rtree);
     return 0;
 }
 
@@ -131,10 +130,12 @@ int rtree_put(struct rtree_t *rtree, struct entry_t *entry){
 
     if(msg->opcode == MESSAGE_T__OPCODE__OP_ERROR){
         message_t__free_unpacked(msg, NULL);
+        //entry_destroy(entry);
         return -1;
     }
 
     message_t__free_unpacked(msg, NULL);
+    //entry_destroy(entry);
 
     return 0;
 }
@@ -168,6 +169,8 @@ struct data_t *rtree_get(struct rtree_t *rtree, char *key){
         message_t__free_unpacked(msg, NULL);
         return NULL;
     }
+    printf("msg->value->datasize: %d\n", msg->value->datasize);
+    printf("msg->value->data: %s\n", msg->value->data);
     struct data_t *data = data_create2(msg->value->datasize, msg->value->data);
     message_t__free_unpacked(msg, NULL);
 
@@ -308,7 +311,7 @@ char **rtree_get_keys(struct rtree_t *rtree){
     }
 
     char **keys = (char **) malloc(sizeof(char *) * (msg->n_keys + 1));
-
+    
     for(int i = 0; i < msg->n_keys; i++){
         keys[i] = strdup(msg->keys[i]);
     }

@@ -36,7 +36,7 @@ void tree_skel_destroy(){
  * Retorna 0 (OK) ou -1 (erro, por exemplo, árvore nao incializada)
 */
 int invoke(struct _MessageT *msg){
-    if(tree == NULL){
+    if(tree == NULL || msg == NULL){
         return -1;
     }
 
@@ -67,8 +67,9 @@ int invoke(struct _MessageT *msg){
                 return -1;
             }
             break;
-        case MESSAGE_T__OPCODE__OP_DEL: //OP_DEL WORKS
-            if(msg->c_type == MESSAGE_T__C_TYPE__CT_KEY && tree_get(tree, msg->key) != NULL){
+        case MESSAGE_T__OPCODE__OP_DEL: {//OP_DEL WORKS
+            struct data_t *data = tree_get(tree, msg->key);
+            if(msg->c_type == MESSAGE_T__C_TYPE__CT_KEY && (data != NULL)){
                 msg->opcode = MESSAGE_T__OPCODE__OP_DEL + 1;
                 msg->c_type = MESSAGE_T__C_TYPE__CT_NONE;
                 tree_del(tree, msg->key);
@@ -78,8 +79,10 @@ int invoke(struct _MessageT *msg){
                 msg->c_type = MESSAGE_T__C_TYPE__CT_NONE;
                 return -1;
             }
+            if (data != NULL) data_destroy(data);
             break;
-        case MESSAGE_T__OPCODE__OP_GET: //OP_GET 
+        }
+        case MESSAGE_T__OPCODE__OP_GET: //OP_GET WORKS
             if(msg->c_type == MESSAGE_T__C_TYPE__CT_KEY){
                 struct data_t *data = tree_get(tree, msg->key);
                 if(data != NULL){
@@ -91,6 +94,7 @@ int invoke(struct _MessageT *msg){
 
                     msg->value->data = data->data;
                     msg->value->datasize = data->datasize;
+                    //data_destroy(data);  //DONT DO THIS
                 }
                 else{
                     msg->opcode = MESSAGE_T__OPCODE__OP_ERROR;
@@ -104,7 +108,7 @@ int invoke(struct _MessageT *msg){
                 return -1;
             }
             break;
-        case MESSAGE_T__OPCODE__OP_PUT: //OP_PUT
+        case MESSAGE_T__OPCODE__OP_PUT: //OP_PUT WORKS
             if(msg->c_type == MESSAGE_T__C_TYPE__CT_ENTRY){    
                 msg->opcode = MESSAGE_T__OPCODE__OP_PUT + 1;
                 msg->c_type = MESSAGE_T__C_TYPE__CT_NONE;
@@ -124,7 +128,8 @@ int invoke(struct _MessageT *msg){
             if(msg->c_type == MESSAGE_T__C_TYPE__CT_NONE && tree_size(tree) > 0){
                 msg->opcode = MESSAGE_T__OPCODE__OP_GETKEYS + 1;
                 msg->c_type = MESSAGE_T__C_TYPE__CT_KEYS;
-                msg->keys = tree_get_keys(tree);
+                msg->n_keys = tree_size(tree);
+                msg->keys = tree_get_keys(tree); //WORKS
             }
             else{
                 msg->opcode = MESSAGE_T__OPCODE__OP_ERROR;
@@ -136,7 +141,18 @@ int invoke(struct _MessageT *msg){
             if(msg->c_type == MESSAGE_T__C_TYPE__CT_NONE && tree_size(tree) > 0){
                 msg->opcode = MESSAGE_T__OPCODE__OP_GETVALUES + 1;
                 msg->c_type = MESSAGE_T__C_TYPE__CT_VALUES;
-                msg->values = tree_get_values(tree);
+                msg->n_values = tree_size(tree); 
+                //msg->values = tree_get_values(tree); //COULD NOT GET THIS TO WORK LIKE THIS
+
+                char **keys = tree_get_keys(tree);
+                int size = tree_size(tree);
+
+                for (int i = 0; i < size; i++){
+                    struct data_t *data = tree_get(tree, keys[i]);
+                    msg->values[i] = data->data;
+                    //data_destroy(data);
+                }
+
             }
             else{
                 msg->opcode = MESSAGE_T__OPCODE__OP_ERROR;
@@ -145,7 +161,7 @@ int invoke(struct _MessageT *msg){
             }
             break;
         default:
-            msg->opcode = MESSAGE_T__OPCODE__OP_ERROR;
+            msg->opcode = MESSAGE_T__OPCODE__OP_BAD;
             msg->c_type = MESSAGE_T__C_TYPE__CT_NONE;
             break;
     }

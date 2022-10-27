@@ -1,10 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 
 #include "../include/client_stub.h"
 #include "../include/client_stub-private.h"
 #include "../include/data.h"
+
+struct rtree_t *rtree;
+
+void handle_exit(){
+    printf("CTRL-C detected, closing...\n");
+    rtree_disconnect(rtree);
+    exit(0);
+}
 
 int main(int argc, char **argv){
     if(argc == 1){ // No arguments
@@ -14,11 +23,14 @@ int main(int argc, char **argv){
 
     printf("Connecting to server...\n");
 
-    struct rtree_t *rtree = rtree_connect(argv[1]);
+    rtree = rtree_connect(argv[1]);
     if(rtree == NULL){
         printf("Error connecting to server\n");
         return -1;
     }
+
+    //capture CTRL-C
+    signal(SIGINT, handle_exit);
 
     char *command = NULL;
     size_t command_size = 0;
@@ -33,6 +45,7 @@ int main(int argc, char **argv){
 
         //quit
         if(strcmp(command, "quit") == 0){
+            free(command);
             break;  // exit loop
         }
 
@@ -44,8 +57,10 @@ int main(int argc, char **argv){
             }
             else{
                 printf("Keys: ");
-                for(int i = 0; keys[i] != NULL; i++){
-                    printf("%p ", keys[i]);
+                int i = 0;
+                while(keys[i] != NULL){
+                    printf("%s ", keys[i]);
+                    i++;
                 }
                 printf("\n");
             }
@@ -104,8 +119,10 @@ int main(int argc, char **argv){
             else{
                 printf("Entry successfully found\n");
                 printf("Datasize: %d\n", data_t->datasize);
-                printf("Data: %s\n", data_t->data);  //FIXME: this is printing a pointer address
+                printf("Data: %s\n",(char *) data_t->data);  //FIXME: this is printing a pointer address
+                //data_destroy(data_t);
             }
+
         }
 
         // del <key>
@@ -166,7 +183,6 @@ int main(int argc, char **argv){
         }
     }
 
-    free(command);
 
     printf("Disconnecting from server...\n");
     if(rtree_disconnect(rtree) != 0){

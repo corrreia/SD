@@ -338,11 +338,11 @@ static const ProtobufCFieldDescriptor message_t__field_descriptors[8] =
     "values",
     9,
     PROTOBUF_C_LABEL_REPEATED,
-    PROTOBUF_C_TYPE_MESSAGE,
+    PROTOBUF_C_TYPE_STRING,
     offsetof(MessageT, n_values),
     offsetof(MessageT, values),
-    &message_t__data__descriptor,
     NULL,
+    &protobuf_c_empty_string,
     0,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },

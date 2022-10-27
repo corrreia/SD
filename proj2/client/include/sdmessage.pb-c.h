@@ -82,7 +82,7 @@ struct  _MessageT
   size_t n_keys;
   char **keys;
   size_t n_values;
-  MessageT__Data **values;
+  char **values;
 };
 #define MESSAGE_T__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&message_t__descriptor) \

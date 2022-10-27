@@ -18,6 +18,7 @@ int server_socket;
 void ctrl_c_handler(int signum){
     printf("CTRL-C detected, closing...\n");
     network_server_close();
+    tree_skel_destroy();
     exit(0);
 }
 
@@ -64,7 +65,7 @@ int network_server_init(short port){
 int network_main_loop(int listening_socket){
     struct sockaddr client_addr;
     int client_socket;
-    socklen_t client_addr_size;// = sizeof(client_addr);
+    socklen_t client_addr_size = sizeof(client_addr);
 
     signal(SIGINT, ctrl_c_handler);
 
@@ -72,38 +73,34 @@ int network_main_loop(int listening_socket){
 
     while((client_socket = accept(listening_socket, (struct sockaddr *) &client_addr, &client_addr_size)) != -1){
         printf("Connection accepted\n");
-    
+        
+        MessageT *message;
+
         int receiving_info = 0;
         while(receiving_info != 1){
 
-            struct _MessageT *message = network_receive(client_socket);
+            message = network_receive(client_socket);
 
-            //caso para o quit
-            // if(message == NULL){   
-            //     printf("Client Disconnected!\n");
-            //     receiving_info = 1;
-            //     close(client_socket);
-            //     continue;
-            // }
-
-            printf("Received message from client\n");
-            printf("Message opcode: %d\n", message->opcode);
-            printf("Message c_type: %d\n", message->c_type);
-        
+            if(message == NULL){
+                printf("NULL message\n");  //only works this print is here ??? WHAT THE ACTUAL FUCK
+                close(client_socket);
+                client_socket = -1;
+            }
+            
             invoke(message);
 
             int value_send = network_send(client_socket,message);
 
             if(value_send == -1){
-                close(client_socket);
-                return -1;
+                break;
             }
         }
 
-        close(client_socket);
+        //close(client_socket);
+        free(message);
+        message_t__free_unpacked(message, NULL);
         printf("Connection closed\n");
     }
-
     return 0;
 }
 
@@ -130,8 +127,9 @@ struct _MessageT *network_receive(int client_socket){
 
     read_all(client_socket,(u_int8_t *) buffer, length);
 
-    message = (struct _MessageT *) message_t__unpack(NULL, length, (uint8_t *) buffer);
+    message = message_t__unpack(NULL, length, (uint8_t *) buffer);
 
+    free(buffer);
     return message;
 }
 
@@ -141,6 +139,9 @@ struct _MessageT *network_receive(int client_socket){
  * - Enviar a mensagem serializada, através do client_socket.
  */
 int network_send(int client_socket, struct _MessageT *msg){
+    if(msg == NULL) return -1;
+    if(client_socket == -1) return -1;
+
     int length = message_t__get_packed_size(msg);
     uint8_t *buffer = (uint8_t *) malloc(length);
     message_t__pack(msg, buffer);
