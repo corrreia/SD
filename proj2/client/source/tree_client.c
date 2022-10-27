@@ -102,8 +102,9 @@ int main(int argc, char **argv){
                 printf("Error getting entry\n");
             }
             else{
-                printf("Entry successfully got\n");
-                printf("Data: %p\n", data_t->data);
+                printf("Entry successfully found\n");
+                printf("Datasize: %d\n", data_t->datasize);
+                printf("Data: %s\n", data_t->data);  //FIXME: this is printing a pointer address
             }
         }
 

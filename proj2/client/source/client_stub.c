@@ -168,14 +168,10 @@ struct data_t *rtree_get(struct rtree_t *rtree, char *key){
         message_t__free_unpacked(msg, NULL);
         return NULL;
     }
-
-    printf("msg->entry->value->datasize: %d\n", msg->entry->value->datasize);
-    printf("msg->entry->value->data: %s\n", msg->entry->value->data);
-
-    //struct data_t *data = data_create2(msg->value->datasize, msg->value->data);
+    struct data_t *data = data_create2(msg->value->datasize, msg->value->data);
     message_t__free_unpacked(msg, NULL);
 
-    return NULL;//data;
+    return data;
 }
 
 /* Função para remover um elemento da árvore. Vai libertar 

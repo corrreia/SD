@@ -82,12 +82,13 @@ int invoke(struct _MessageT *msg){
         case MESSAGE_T__OPCODE__OP_GET: //OP_GET 
             if(msg->c_type == MESSAGE_T__C_TYPE__CT_KEY){
                 struct data_t *data = tree_get(tree, msg->key);
-                printf("key: %s\n", msg->key);
-                printf("data: %s\n", data->data);
-                printf("datasize: %d\n", data->datasize);
                 if(data != NULL){
                     msg->opcode = MESSAGE_T__OPCODE__OP_GET + 1;
                     msg->c_type = MESSAGE_T__C_TYPE__CT_VALUE;
+
+                    msg->value = (struct _MessageT__Data *) malloc(sizeof(struct _MessageT__Data));
+                    message_t__data__init(msg->value);
+
                     msg->value->data = data->data;
                     msg->value->datasize = data->datasize;
                 }
@@ -135,8 +136,7 @@ int invoke(struct _MessageT *msg){
             if(msg->c_type == MESSAGE_T__C_TYPE__CT_NONE && tree_size(tree) > 0){
                 msg->opcode = MESSAGE_T__OPCODE__OP_GETVALUES + 1;
                 msg->c_type = MESSAGE_T__C_TYPE__CT_VALUES;
-                //using memcpy to copy the array of data_t
-                memcpy(msg->values, tree_get_values(tree), tree_size(tree) * sizeof(struct data_t));
+                msg->values = tree_get_values(tree);
             }
             else{
                 msg->opcode = MESSAGE_T__OPCODE__OP_ERROR;
