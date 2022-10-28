@@ -50,7 +50,7 @@ int invoke(struct _MessageT *msg){
     MessageT__Opcode opcode = msg->opcode;
 
     switch(opcode){  
-        case MESSAGE_T__OPCODE__OP_SIZE: //OP_SIZE  WORKS
+        case MESSAGE_T__OPCODE__OP_SIZE: 
             if(msg->c_type == MESSAGE_T__C_TYPE__CT_NONE){
                 msg->opcode = MESSAGE_T__OPCODE__OP_SIZE + 1;
                 msg->c_type = MESSAGE_T__C_TYPE__CT_RESULT;
@@ -62,7 +62,7 @@ int invoke(struct _MessageT *msg){
                 return -1;
             }
             break;
-        case MESSAGE_T__OPCODE__OP_HEIGHT: //OP_HEIGHT WORKS
+        case MESSAGE_T__OPCODE__OP_HEIGHT: 
             if(msg->c_type == MESSAGE_T__C_TYPE__CT_NONE){
                 msg->opcode = MESSAGE_T__OPCODE__OP_HEIGHT + 1;
                 msg->c_type = MESSAGE_T__C_TYPE__CT_RESULT;
@@ -74,7 +74,7 @@ int invoke(struct _MessageT *msg){
                 return -1;
             }
             break;
-        case MESSAGE_T__OPCODE__OP_DEL: {//OP_DEL WORKS
+        case MESSAGE_T__OPCODE__OP_DEL: {
             struct data_t *data = tree_get(tree, msg->key);
             if(msg->c_type == MESSAGE_T__C_TYPE__CT_KEY && (data != NULL)){
                 msg->opcode = MESSAGE_T__OPCODE__OP_DEL + 1;
@@ -89,7 +89,7 @@ int invoke(struct _MessageT *msg){
             if (data != NULL) data_destroy(data);
             break;
         }
-        case MESSAGE_T__OPCODE__OP_GET: //OP_GET WORKS
+        case MESSAGE_T__OPCODE__OP_GET: 
             if(msg->c_type == MESSAGE_T__C_TYPE__CT_KEY){
                 struct data_t *data = tree_get(tree, msg->key);
                 if(data != NULL){
@@ -115,7 +115,7 @@ int invoke(struct _MessageT *msg){
                 return -1;
             }
             break;
-        case MESSAGE_T__OPCODE__OP_PUT: //OP_PUT WORKS
+        case MESSAGE_T__OPCODE__OP_PUT:
             if(msg->c_type == MESSAGE_T__C_TYPE__CT_ENTRY){    
                 msg->opcode = MESSAGE_T__OPCODE__OP_PUT + 1;
                 msg->c_type = MESSAGE_T__C_TYPE__CT_NONE;
@@ -131,12 +131,12 @@ int invoke(struct _MessageT *msg){
                 return -1;
             }
             break;
-        case MESSAGE_T__OPCODE__OP_GETKEYS: //OP_GETKEYS
+        case MESSAGE_T__OPCODE__OP_GETKEYS: 
             if(msg->c_type == MESSAGE_T__C_TYPE__CT_NONE && tree_size(tree) > 0){
                 msg->opcode = MESSAGE_T__OPCODE__OP_GETKEYS + 1;
                 msg->c_type = MESSAGE_T__C_TYPE__CT_KEYS;
                 msg->n_keys = tree_size(tree);
-                msg->keys = tree_get_keys(tree); //WORKS
+                msg->keys = tree_get_keys(tree); 
             }
             else{
                 msg->opcode = MESSAGE_T__OPCODE__OP_ERROR;
