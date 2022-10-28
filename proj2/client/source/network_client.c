@@ -75,15 +75,13 @@ struct _MessageT *network_send_receive(struct rtree_t * rtree, struct _MessageT 
     if (r < 0) return NULL;
     len_response = ntohl(len_response);
 
-    uint8_t *str = (uint8_t *) malloc(len_response);
-    read_all(socket_fd, str, len_response);
+    uint8_t *str[len_response];
+    read_all(socket_fd, (uint8_t *) str, len_response);
 
     str[len_response] = '\0';
     
-    struct _MessageT *response = message_t__unpack(NULL, len_response, str);
+    struct _MessageT *response = message_t__unpack(NULL, len_response,(uint8_t *) str);
 
-    free(str);
-    
     return response;
 }
 

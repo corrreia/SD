@@ -23,7 +23,7 @@ void handle_exit(){
 }
 
 int main(int argc, char **argv){
-    if(argc == 1){ // No arguments
+    if(argc != 2){ // No arguments
         printf("Usage: %s <server>:<port>\n", argv[0]);
         return -1;
     }
@@ -134,8 +134,8 @@ int main(int argc, char **argv){
             }else{
                 printf("Entry successfully found\n");
                 printf("Datasize: %d\n", data_t->datasize);
-                printf("Data: %s\n",(char *)data_t->data);  //FIXME: this is printing a pointer address
-                data_destroy(data_t);  //! DO NOT FREE!!
+                printf("Data: %s\n",(char *)data_t->data);  
+                data_destroy(data_t);  
             }
         }
 
