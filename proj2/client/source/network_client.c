@@ -80,9 +80,7 @@ struct _MessageT *network_send_receive(struct rtree_t * rtree, struct _MessageT 
 
     str[len_response] = '\0';
     
-    struct _MessageT *response = message_t__unpack(NULL, len_response,(uint8_t *) str);
-
-    return response;
+    return message_t__unpack(NULL, len_response,(uint8_t *) str);
 }
 
 /* A função network_close() fecha a ligação estabelecida por

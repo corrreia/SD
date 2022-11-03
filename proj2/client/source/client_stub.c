@@ -99,47 +99,31 @@ int rtree_put(struct rtree_t *rtree, struct entry_t *entry){
     }
 
     //create message
-    MessageT *msg = (MessageT *) malloc(sizeof(MessageT)); //! memory leak
-    if(msg == NULL) return -1;
-    message_t__init(msg);
-
-    //create message entry
-    msg->entry = (MessageT__Entry *) malloc(sizeof(MessageT__Entry)); //! memory leak
-    if(msg->entry == NULL){
-        message_t__free_unpacked(msg, NULL);
-        return -1;
-    }
-    message_t__entry__init(msg->entry);
+    MessageT msg;// = (MessageT *) malloc(sizeof(MessageT)); //! memory leak
+    message_t__init(&msg);
+    message_t__entry__init(&msg.entry);
+    message_t__data__init(&msg.entry->value);
 
 
-    // create message entry data 
-    msg->entry->value = (MessageT__Data *) malloc(sizeof(MessageT__Data)); //! memory leak
-    if(msg->entry->value == NULL){
-        message_t__free_unpacked(msg, NULL);
-        return -1;
-    }
-    message_t__data__init(msg->entry->value);
-
-
-    msg->entry->key = entry->key;
-    msg->entry->value->datasize = entry->value->datasize;
-    msg->entry->value->data = entry->value->data;
-    msg->opcode = MESSAGE_T__OPCODE__OP_PUT;
-    msg->c_type = MESSAGE_T__C_TYPE__CT_ENTRY;
+    msg.entry->key = entry->key;
+    msg.entry->value->datasize = entry->value->datasize;
+    msg.entry->value->data = entry->value->data;
+    msg.opcode = MESSAGE_T__OPCODE__OP_PUT;
+    msg.c_type = MESSAGE_T__C_TYPE__CT_ENTRY;
 
     //send message
-    msg = network_send_receive(rtree, msg);
+    msg = *network_send_receive(rtree, &msg);
 
-    if(msg == NULL){
+    if(&msg == NULL){
         return -1;
     }
 
-    if(msg->opcode == MESSAGE_T__OPCODE__OP_ERROR){
-        message_t__free_unpacked(msg, NULL);
+    if(msg.opcode == MESSAGE_T__OPCODE__OP_ERROR){
+        message_t__free_unpacked(&msg, NULL);
         return -1;
     }
 
-    message_t__free_unpacked(msg, NULL);
+    message_t__free_unpacked(&msg, NULL);    
 
     return 0;
 }
@@ -153,38 +137,37 @@ struct data_t *rtree_get(struct rtree_t *rtree, char *key){
         return NULL;
     }
 
-    MessageT *msg = (MessageT *) malloc(sizeof(MessageT));
-    if(msg == NULL) return NULL;
+    MessageT msg;
+    message_t__init(&msg);
 
-    message_t__init(msg);
-
-    msg->key = key;
-    msg->opcode = MESSAGE_T__OPCODE__OP_GET;
-    msg->c_type = MESSAGE_T__C_TYPE__CT_KEY;
+    msg.key = key;
+    msg.opcode = MESSAGE_T__OPCODE__OP_GET;
+    msg.c_type = MESSAGE_T__C_TYPE__CT_KEY;
 
     //send message
-    msg = network_send_receive(rtree, msg);
+    msg = *network_send_receive(rtree, &msg);
 
-    if(msg == NULL){
+    if(&msg == NULL){
         return NULL;
     }
 
-    if(msg->opcode == MESSAGE_T__OPCODE__OP_ERROR){
-        message_t__free_unpacked(msg, NULL);
+    if(msg.opcode == MESSAGE_T__OPCODE__OP_ERROR){
+        message_t__free_unpacked(&msg, NULL);
         return NULL;
     }
 
-    if(msg->opcode == MESSAGE_T__OPCODE__OP_GET+1 &&
-        msg->c_type == MESSAGE_T__C_TYPE__CT_NONE){
-            message_t__free_unpacked(msg, NULL);
+    if(msg.opcode == MESSAGE_T__OPCODE__OP_GET+1 &&
+        msg.c_type == MESSAGE_T__C_TYPE__CT_NONE){
+            message_t__free_unpacked(&msg, NULL);
             printf("Key not found\n");
             return data_create(0); //! THIS RETURNS NULL !!
     }
     
-    struct data_t *data = data_create(msg->value->datasize);
-    memcpy(data->data, msg->value->data, msg->value->datasize);
+    //create data_t
+    struct data_t *data = data_create(msg.entry->value->datasize);
+    memccpy(data->data, msg.entry->value->data, msg.entry->value->datasize, msg.entry->value->datasize);
 
-    message_t__free_unpacked(msg, NULL);
+    message_t__free_unpacked(&msg, NULL);
 
     return data;
 }
@@ -233,28 +216,26 @@ int rtree_size(struct rtree_t *rtree){
         return -1;
     }
 
-    MessageT *msg = (MessageT *) malloc(sizeof(MessageT));
-    if(msg == NULL) return -1;
+    MessageT msg;
+    message_t__init(&msg);
 
-    message_t__init(msg);
-
-    msg->opcode = MESSAGE_T__OPCODE__OP_SIZE;
-    msg->c_type = MESSAGE_T__C_TYPE__CT_NONE;
+    msg.opcode = MESSAGE_T__OPCODE__OP_SIZE;
+    msg.c_type = MESSAGE_T__C_TYPE__CT_NONE;
 
     //send message
-    msg = network_send_receive(rtree, msg);
+    msg = *network_send_receive(rtree, &msg);
 
-    if(msg == NULL){
+    if(&msg == NULL){
         return -1;
     }
 
-    if(msg->opcode == MESSAGE_T__OPCODE__OP_ERROR){
-        message_t__free_unpacked(msg, NULL);
+    if(msg.opcode == MESSAGE_T__OPCODE__OP_ERROR){
+        message_t__free_unpacked(&msg, NULL);
         return -1;
     }
 
-    int size = msg->result;
-    message_t__free_unpacked(msg, NULL);
+    int size = msg.result;
+    message_t__free_unpacked(&msg, NULL);
 
     return size;
 }
