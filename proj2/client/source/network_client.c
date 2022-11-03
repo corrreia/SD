@@ -54,33 +54,37 @@ int network_connect(struct rtree_t *rtree){
  * - De-serializar a mensagem de resposta;
  * - Retornar a mensagem de-serializada ou NULL em caso de erro.
  */
-struct _MessageT *network_send_receive(struct rtree_t * rtree, struct _MessageT *msg){
+struct MessageT *network_send_receive(struct rtree_t * rtree, struct MessageT *msg){
     int socket_fd = rtree->socket;
 
     int msg_size = message_t__get_packed_size(msg);
     int msg_size_n = htonl(msg_size);
 
-    uint8_t *msg_serialized = (uint8_t *) malloc(msg_size);
+    uint8_t *buffer = (uint8_t *) calloc(msg_size, sizeof(char));
 
-    message_t__pack(msg, msg_serialized);
+    message_t__pack(msg, buffer);
 
     int w = write(socket_fd, &msg_size_n, sizeof(int));
     if(w < 0) return NULL;
-    write_all(socket_fd, msg_serialized, msg_size);
+    write_all(socket_fd, buffer, msg_size);
 
-    free(msg_serialized);
+    if(msg != NULL) message_t__free_unpacked(msg, NULL);
+    free(buffer);
 
     int len_response;
     int r = read(socket_fd, &len_response, sizeof(int));
     if (r < 0) return NULL;
     len_response = ntohl(len_response);
 
-    uint8_t *str[len_response];
-    read_all(socket_fd, (uint8_t *) str, len_response);
+    uint8_t *buffer_response = (uint8_t *) calloc(len_response, sizeof(char));
+    read_all(socket_fd, buffer_response, len_response);
 
-    str[len_response] = '\0';
-    
-    return message_t__unpack(NULL, len_response,(uint8_t *) str);
+    //add /0 to the end of the buffer
+    //buffer_response[len_response] = '\0'; //* not needed
+
+    msg = message_t__unpack(NULL, len_response,buffer_response);
+    free(buffer_response);
+    return msg;
 }
 
 /* A função network_close() fecha a ligação estabelecida por

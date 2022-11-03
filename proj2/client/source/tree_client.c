@@ -70,10 +70,12 @@ int main(int argc, char **argv){
                 int i = 0;
                 while(keys[i] != NULL){
                     printf("%s ", keys[i]);
+                    free(keys[i]); // free each key
                     i++;
                 }
                 printf("\n");
-                free(keys);
+                free(keys); // free array of keys
+
             }
         }
 
@@ -88,10 +90,11 @@ int main(int argc, char **argv){
                 int i = 0;
                 while(values[i] != NULL){
                     printf("%s ", values[i]);
+                    free(values[i]); // free each value
                     i++;
                 }
                 printf("\n");
-                free(values);
+                free(values); // free array of values
             }
         }
         
@@ -129,7 +132,7 @@ int main(int argc, char **argv){
                 continue;
             }
 
-            struct data_t *data_t = rtree_get(rtree, key);
+            struct data_t *data_t = rtree_get(rtree, strdup(key));
             if(data_t == NULL){
                 printf("Error getting entry\n");
             }else if(data_t->datasize == 0){
@@ -152,7 +155,7 @@ int main(int argc, char **argv){
                 continue;
             }
 
-            if(rtree_del(rtree, key) == -1){
+            if(rtree_del(rtree, strdup(key)) == -1){
                 printf("Error deleting entry\n");
             }
             else{
