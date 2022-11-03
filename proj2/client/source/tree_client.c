@@ -15,10 +15,12 @@
 #include "../include/data.h"
 
 struct rtree_t *rtree;
+char *command = NULL;
 
 void handle_exit(){
     printf("CTRL-C detected, closing...\n");
     rtree_disconnect(rtree);
+    free(command);
     exit(0);
 }
 
@@ -41,7 +43,6 @@ int main(int argc, char **argv){
     //signal() para ignorar sinais do tipo SIGPIPE
     signal(SIGPIPE, SIG_IGN);
 
-    char *command = NULL;
     size_t command_size = 0;
     while(1){
         printf(">> ");
@@ -105,15 +106,17 @@ int main(int argc, char **argv){
                 continue;
             }
 
-            struct data_t *data_t = data_create2(strlen(data), data);
-            struct entry_t *entry_t = entry_create(key, data_t);
+            struct data_t *data_t = data_create(strlen(data)+1);
+            memcpy(data_t->data, data, strlen(data)+1);
+            struct entry_t *entry_t = entry_create(strdup(key), data_t);
+            
             if(rtree_put(rtree, entry_t) == -1){
                 printf("Error putting entry\n");
             }
             else{
                 printf("Entry successfully put\n");
             }
-            //entry_destroy(entry_t);  CAN'T FREE ENTRY_T BECAUSE IT'S BEING USED BY RTREE
+            entry_destroy(entry_t);
         }
 
         // get <key>

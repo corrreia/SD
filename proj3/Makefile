@@ -30,6 +30,11 @@ CLIENT_INC = $(wildcard $(CLIENT)/include/*.h)
 
 all: client-lib.o tree-client tree-server
 
+$(shell mkdir -p $(SERVER)/object)
+$(shell mkdir -p $(SERVER)/binary)
+$(shell mkdir -p $(CLIENT)/object)
+$(shell mkdir -p $(CLIENT)/binary)
+
 client-lib.o: $(CLIENT_OBJ)
 	$(CC) $(CFLAGS) -o $(CLIENT)/object/client-lib.o $(CLIENT_OBJ) $(LDFLAGS)
 

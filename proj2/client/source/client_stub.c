@@ -98,31 +98,30 @@ int rtree_put(struct rtree_t *rtree, struct entry_t *entry){
         return -1;
     }
 
-    //create entry
-    struct _MessageT *msg = (struct _MessageT *) malloc(sizeof(struct _MessageT));
+    //create message
+    MessageT *msg = (MessageT *) malloc(sizeof(MessageT)); //! memory leak
     if(msg == NULL) return -1;
-    
     message_t__init(msg);
 
-    msg->entry = (struct _MessageT__Entry *) malloc(sizeof(struct _MessageT__Entry));
-    
+    //create message entry
+    msg->entry = (MessageT__Entry *) malloc(sizeof(MessageT__Entry)); //! memory leak
     if(msg->entry == NULL){
         message_t__free_unpacked(msg, NULL);
         return -1;
     }
-
     message_t__entry__init(msg->entry);
 
-    msg->entry->key = entry->key;
 
-    msg->entry->value = (struct _MessageT__Data *) malloc(sizeof(struct _MessageT__Data));
+    // create message entry data 
+    msg->entry->value = (MessageT__Data *) malloc(sizeof(MessageT__Data)); //! memory leak
     if(msg->entry->value == NULL){
         message_t__free_unpacked(msg, NULL);
         return -1;
     }
-
     message_t__data__init(msg->entry->value);
 
+
+    msg->entry->key = entry->key;
     msg->entry->value->datasize = entry->value->datasize;
     msg->entry->value->data = entry->value->data;
     msg->opcode = MESSAGE_T__OPCODE__OP_PUT;
@@ -137,12 +136,10 @@ int rtree_put(struct rtree_t *rtree, struct entry_t *entry){
 
     if(msg->opcode == MESSAGE_T__OPCODE__OP_ERROR){
         message_t__free_unpacked(msg, NULL);
-        //entry_destroy(entry);
         return -1;
     }
 
     message_t__free_unpacked(msg, NULL);
-    //entry_destroy(entry);
 
     return 0;
 }
@@ -156,7 +153,7 @@ struct data_t *rtree_get(struct rtree_t *rtree, char *key){
         return NULL;
     }
 
-    struct _MessageT *msg = (struct _MessageT *) malloc(sizeof(struct _MessageT));
+    MessageT *msg = (MessageT *) malloc(sizeof(MessageT));
     if(msg == NULL) return NULL;
 
     message_t__init(msg);
@@ -181,11 +178,12 @@ struct data_t *rtree_get(struct rtree_t *rtree, char *key){
         msg->c_type == MESSAGE_T__C_TYPE__CT_NONE){
             message_t__free_unpacked(msg, NULL);
             printf("Key not found\n");
-            return data_create(0);
+            return data_create(0); //! THIS RETURNS NULL !!
     }
     
     struct data_t *data = data_create(msg->value->datasize);
     memcpy(data->data, msg->value->data, msg->value->datasize);
+
     message_t__free_unpacked(msg, NULL);
 
     return data;
@@ -201,7 +199,7 @@ int rtree_del(struct rtree_t *rtree, char *key){
         return -1;
     }
 
-    struct _MessageT *msg = (struct _MessageT *) malloc(sizeof(struct _MessageT));
+    MessageT *msg = (MessageT *) malloc(sizeof(MessageT));
     if(msg == NULL) return -1;
 
     message_t__init(msg);
@@ -235,7 +233,7 @@ int rtree_size(struct rtree_t *rtree){
         return -1;
     }
 
-    struct _MessageT *msg = (struct _MessageT *) malloc(sizeof(struct _MessageT));
+    MessageT *msg = (MessageT *) malloc(sizeof(MessageT));
     if(msg == NULL) return -1;
 
     message_t__init(msg);
@@ -269,7 +267,7 @@ int rtree_height(struct rtree_t *rtree){
         return -1;
     }
 
-    struct _MessageT *msg = (struct _MessageT *) malloc(sizeof(struct _MessageT));
+    MessageT *msg = (MessageT *) malloc(sizeof(MessageT));
     if(msg == NULL) return -1;
 
     message_t__init(msg);
@@ -304,7 +302,7 @@ char **rtree_get_keys(struct rtree_t *rtree){
         return NULL;
     }
 
-    struct _MessageT *msg = (struct _MessageT *) malloc(sizeof(struct _MessageT));
+    MessageT *msg = (MessageT *) malloc(sizeof(MessageT));
     if(msg == NULL) return NULL;
 
     message_t__init(msg);
@@ -346,7 +344,7 @@ void **rtree_get_values(struct rtree_t *rtree){
         return NULL;
     }
 
-    struct _MessageT *msg = (struct _MessageT *) malloc(sizeof(struct _MessageT));
+    MessageT *msg = (MessageT *) malloc(sizeof(MessageT));
     if(msg == NULL) return NULL;
 
     message_t__init(msg);
