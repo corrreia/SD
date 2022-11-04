@@ -117,11 +117,6 @@ int network_main_loop(int listening_socket){
  *   reservando a memória necessária para a estrutura message_t.
  */
 MessageT *network_receive(int client_socket){
-    //FIRST read the size of the message, SECOND read the message
-    
-    MessageT *message = (MessageT *) malloc(sizeof(MessageT));
-    message_t__init(message);
-
     int length = 0;
     int i = read(client_socket, &length, sizeof(int));
     if(i == -1) return NULL;
@@ -131,9 +126,9 @@ MessageT *network_receive(int client_socket){
 
     uint8_t *buffer = (uint8_t *) calloc(length, sizeof(char));
 
-    read_all(client_socket,(u_int8_t *) buffer, length);
+    read_all(client_socket, buffer, length);
 
-    message = message_t__unpack(NULL, length, buffer);
+    MessageT *message = message_t__unpack(NULL, length, buffer);
 
     free(buffer);
     return message;
@@ -157,7 +152,7 @@ int network_send(int client_socket, MessageT *msg){
     length = ntohl(length);
 
     write_all(client_socket, buffer, length);
-
+    free(buffer);
     return i;
 }
 

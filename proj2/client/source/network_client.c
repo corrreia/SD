@@ -54,7 +54,7 @@ int network_connect(struct rtree_t *rtree){
  * - De-serializar a mensagem de resposta;
  * - Retornar a mensagem de-serializada ou NULL em caso de erro.
  */
-struct MessageT *network_send_receive(struct rtree_t * rtree, struct MessageT *msg){
+MessageT *network_send_receive(struct rtree_t * rtree, MessageT *msg){
     int socket_fd = rtree->socket;
 
     int msg_size = message_t__get_packed_size(msg);
