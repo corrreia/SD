@@ -83,12 +83,10 @@ int network_main_loop(int listening_socket){
     while((client_socket = accept(listening_socket, (struct sockaddr *) &client_addr, &client_addr_size)) != -1){
         printf("Connection accepted\n");
         
-        MessageT *message;
-
         int receiving_info = 0;
         while(receiving_info != 1){
 
-            message = network_receive(client_socket);
+            MessageT *message = network_receive(client_socket);
 
             if(message == NULL){
                 //printf("NULL message\n"); 
@@ -99,6 +97,7 @@ int network_main_loop(int listening_socket){
             invoke(message);
 
             int value_send = network_send(client_socket,message);
+            message_t__free_unpacked(message, NULL);
 
             if(value_send == -1){
                 break;
@@ -106,8 +105,6 @@ int network_main_loop(int listening_socket){
         }
 
         //close(client_socket);
-        free(message);
-        message_t__free_unpacked(message, NULL);
         printf("Connection closed\n");
     }
     return 0;
@@ -119,24 +116,19 @@ int network_main_loop(int listening_socket){
  * - De-serializar estes bytes e construir a mensagem com o pedido,
  *   reservando a memória necessária para a estrutura message_t.
  */
-struct _MessageT *network_receive(int client_socket){
-    //FIRST read the size of the message, SECOND read the message
-    
-    MessageT *message = (MessageT *) malloc(sizeof(MessageT));
-    message_t__init(message);
-
+MessageT *network_receive(int client_socket){
     int length = 0;
     int i = read(client_socket, &length, sizeof(int));
     if(i == -1) return NULL;
 
     length = ntohl(length);
-    if(length == 0) return NULL;
+    if(length == 0) return NULL; //* this sould never happen
 
-    char *buffer = (char *) malloc(length);
+    uint8_t *buffer = (uint8_t *) calloc(length, sizeof(char));
 
-    read_all(client_socket,(u_int8_t *) buffer, length);
+    read_all(client_socket, buffer, length);
 
-    message = message_t__unpack(NULL, length, (uint8_t *) buffer);
+    MessageT *message = message_t__unpack(NULL, length, buffer);
 
     free(buffer);
     return message;
@@ -147,7 +139,7 @@ struct _MessageT *network_receive(int client_socket){
  * - Libertar a memória ocupada por esta mensagem;
  * - Enviar a mensagem serializada, através do client_socket.
  */
-int network_send(int client_socket, struct _MessageT *msg){
+int network_send(int client_socket, MessageT *msg){
     if(msg == NULL) return -1;
     if(client_socket == -1) return -1;
 
@@ -160,7 +152,7 @@ int network_send(int client_socket, struct _MessageT *msg){
     length = ntohl(length);
 
     write_all(client_socket, buffer, length);
-
+    free(buffer);
     return i;
 }
 
