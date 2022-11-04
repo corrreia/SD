@@ -99,11 +99,11 @@ int rtree_put(struct rtree_t *rtree, struct entry_t *entry){
     }
 
     //create message
-    MessageT *msg = calloc(1, message_t__descriptor.sizeof_message);
+    MessageT *msg = malloc(message_t__descriptor.sizeof_message);
     message_t__init(msg);
-    msg->entry = calloc(1, message_t__entry__descriptor.sizeof_message);
+    msg->entry = malloc(message_t__entry__descriptor.sizeof_message);
     message_t__entry__init(msg->entry);
-    msg->entry->value = calloc(1, message_t__data__descriptor.sizeof_message);
+    msg->entry->value = malloc(message_t__data__descriptor.sizeof_message);
     message_t__data__init(msg->entry->value);
 
 
@@ -130,7 +130,7 @@ int rtree_put(struct rtree_t *rtree, struct entry_t *entry){
  * Em caso de erro, devolve NULL.
  */
 struct data_t *rtree_get(struct rtree_t *rtree, char *key){
-    MessageT *msg = calloc(1, message_t__descriptor.sizeof_message);
+    MessageT *msg = malloc(message_t__descriptor.sizeof_message);
     message_t__init(msg);
 
     msg->key = key;
@@ -169,7 +169,7 @@ struct data_t *rtree_get(struct rtree_t *rtree, char *key){
  * Devolve: 0 (ok), -1 (key not found ou problemas).
  */
 int rtree_del(struct rtree_t *rtree, char *key){
-    MessageT *msg = calloc(1, message_t__descriptor.sizeof_message);
+    MessageT *msg = malloc(message_t__descriptor.sizeof_message);
     message_t__init(msg);
 
     msg->key = key;
@@ -196,7 +196,7 @@ int rtree_del(struct rtree_t *rtree, char *key){
 /* Devolve o número de elementos contidos na árvore.
  */
 int rtree_size(struct rtree_t *rtree){
-    MessageT *msg = calloc(1, message_t__descriptor.sizeof_message);
+    MessageT *msg = malloc(message_t__descriptor.sizeof_message);
     if(msg == NULL) return -1;
     message_t__init(msg);
 
@@ -221,7 +221,7 @@ int rtree_size(struct rtree_t *rtree){
 /* Função que devolve a altura da árvore.
  */
 int rtree_height(struct rtree_t *rtree){
-    MessageT *msg = calloc(1, message_t__descriptor.sizeof_message);
+    MessageT *msg = malloc(message_t__descriptor.sizeof_message);
     if(msg == NULL) return -1;
 
     message_t__init(msg);
@@ -251,7 +251,7 @@ int rtree_height(struct rtree_t *rtree){
  * colocando um último elemento a NULL.
  */
 char **rtree_get_keys(struct rtree_t *rtree){
-    MessageT *msg = calloc(1, message_t__descriptor.sizeof_message);
+    MessageT *msg = malloc(message_t__descriptor.sizeof_message);
     if(msg == NULL) return NULL;
 
     message_t__init(msg);

@@ -42,7 +42,7 @@ void tree_skel_destroy(){
  * e utiliza a mesma estrutura message_t para devolver o resultado.
  * Retorna 0 (OK) ou -1 (erro, por exemplo, árvore nao incializada)
 */
-int invoke(struct _MessageT *msg){
+int invoke(MessageT *msg){
     if(tree == NULL || msg == NULL){
         return -1;
     }
@@ -96,7 +96,7 @@ int invoke(struct _MessageT *msg){
                     msg->opcode = MESSAGE_T__OPCODE__OP_GET + 1;
                     msg->c_type = MESSAGE_T__C_TYPE__CT_VALUE;
 
-                    msg->value = (struct _MessageT__Data *) malloc(sizeof(struct _MessageT__Data));
+                    msg->value = calloc(1, message_t__data__descriptor.sizeof_message);
                     message_t__data__init(msg->value);
 
                     msg->value->data = data->data;
@@ -152,7 +152,7 @@ int invoke(struct _MessageT *msg){
                 //msg->values = tree_get_values(tree); //COULD NOT GET THIS TO WORK LIKE THIS 
 
                 char **keys = tree_get_keys(tree);                                   //so we did it like this
-                char **values = (char **) malloc(sizeof(char *) * tree_size(tree));  //WORKS
+                char **values = (char **) calloc(tree_size(tree), sizeof(char *));   //and it works
                 //msg->values is a array of strings
                 int i = 0;
                 while(keys[i] != NULL){
