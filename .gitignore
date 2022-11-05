@@ -1,10 +1,5 @@
 #code
 .vscode
 
-#project 1
-proj1/object
-proj1/binary
-
-#project 2
-proj2/*/object
-proj2/*/binary
+object
+binary
