@@ -13,6 +13,12 @@ struct data_t *data; // os dados a adicionar em caso de put, ou NULL em caso de 
 struct request_t *next; //apontador para o próximo pedido
 };
 
+struct op_proc {
+    int max_proc;
+    int *in_progress;
+};
+
+
 /* Inicia o skeleton da árvore.
 * O main() do servidor deve chamar esta função antes de poder usar a
 * função invoke().
@@ -25,6 +31,18 @@ int tree_skel_init(int N);
 /* Liberta toda a memória e recursos alocados pela função tree_skel_init.
  */
 void tree_skel_destroy();
+
+/* Função para obter a ultima operação da lista
+    */
+struct request_t *get_last_request(struct request_t *head);
+
+/* Executa a operação put.
+*/
+int tree_skel_put(char* key, struct data_t *value);
+
+/* Executa a operação del.
+*/
+int tree_skel_del(char* key);
 
 /* Executa uma operação na árvore (indicada pelo opcode contido em msg)
  * e utiliza a mesma estrutura message_t para devolver o resultado.

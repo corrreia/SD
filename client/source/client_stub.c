@@ -49,10 +49,6 @@ struct rtree_t *rtree_connect(const char *address_port){
     char *address = strtok(ap_copy, ":");  
     char *port = strtok(NULL, "\0");
 
-    //printf("address: %s \nport: %s \n", address, port); //not needed tbh
-
-    //populate rtree struct and call network_connect()
-
     rtree->server.sin_family = AF_INET;
     rtree->server.sin_port = htons(atoi(port));
 
@@ -60,17 +56,14 @@ struct rtree_t *rtree_connect(const char *address_port){
     //check if address is an IP or a hostname
     if(inet_pton(AF_INET, address, &rtree->server.sin_addr) <= 0){
         //address is a hostname
-        struct hostent *host = gethostbyname(address);
+        struct hostent *host = gethostbyname(address);   
         //print converted IP
         printf("Provided address is a hostname, converted IP is: %s\n", inet_ntoa(*((struct in_addr *)host->h_addr)));
         if(host == NULL){
-            printf("Error getting host by name\n");
-            free(ap_copy);
-            free(host); //?check if this is necessary
+            printf("Error getting host by name\n");  //! problem here: when connecting to a host that doesent have a server running, it crashes
             return NULL;
         }
         memcpy(&rtree->server.sin_addr, host->h_addr, host->h_length);
-        free(host); //?check if this is necessary
     }
 
     if(network_connect(rtree) < 0){
@@ -92,13 +85,7 @@ int rtree_disconnect(struct rtree_t *rtree){
     if(rtree == NULL){
         return -1;
     }
-
-    if(network_close(rtree) < 0){
-        return -1;
-    }
-
-    //free(rtree);
-    return 0;
+    return network_close(rtree);
 }
 
 /* Função para adicionar um elemento na árvore.

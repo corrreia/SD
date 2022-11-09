@@ -20,7 +20,10 @@ struct tree_t *tree = NULL;
 struct request_t *queue_head;
 pthread_mutex_t queue_lock, tree_lock  = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t queue_not_empty =  PTHREAD_COND_INITIALIZER;
-pthread_t ptid;
+
+int last_assigned = 1; 
+struct op_proc *op_procs = NULL;
+
 
 /* Inicia o skeleton da árvore.
 * O main() do servidor deve chamar esta função antes de poder usar a
@@ -42,6 +45,17 @@ int tree_skel_init(int N){
             return -1;
         else 
             printf("Thread %d created\n", i);
+    }
+
+    // initialize op_procs atributes with 0
+    op_procs = (struct op_proc *) malloc(sizeof(struct op_proc) * N);
+    for(int i = 0; i < N; i++){
+        op_procs[i].max_proc= 0;
+        // initialize in_progress with 0
+        op_procs[i].in_progress = (int *) malloc(sizeof(int) * N);
+        for(int j = 0; j < N; j++){
+            op_procs[i].in_progress[j] = 0;
+        }
     }
 
     return 0;
@@ -75,7 +89,7 @@ void * process_request (void *params){
         //handle request
         if(request->op == 0){ //delete
             pthread_mutex_lock(&tree_lock);
-            tree_delete(tree, request->key);
+            tree_del(tree, request->key);
             pthread_mutex_unlock(&tree_lock);
         }
         else if(request->op == 1){ //put
@@ -86,6 +100,51 @@ void * process_request (void *params){
         
     }
     return;
+}
+
+struct request_t *get_last_request(struct request_t *head){
+    struct request_t *current = head;
+    while(current->next != NULL){
+        current = current->next;
+    }
+    return current;
+}
+
+
+int tree_skel_put(char* key, struct data_t *value){
+    // add request to queue and send signal to thread
+    struct request_t *last_request = get_last_request(queue_head);
+    struct request_t *request = (struct request_t *) malloc(sizeof(struct request_t));
+    request->op = 1;
+    request->key = key;
+    request->data = value;
+    request->next = NULL;
+    request->op_n = last_request->op_n + 1;
+
+    last_request->next = request;    
+
+    //send signal to thread
+    pthread_cond_broadcast(&queue_not_empty);
+
+    return request->op_n;
+}
+
+int tree_skel_del(char* key){
+    // add request to queue and send signal to thread
+    struct request_t *last_request = get_last_request(queue_head);
+    struct request_t *request = (struct request_t *) malloc(sizeof(struct request_t));
+    request->op = 0;
+    request->key = key;
+    request->data = NULL;
+    request->next = NULL;
+    request->op_n = last_request->op_n + 1;
+
+    last_request->next = request;    
+
+    //send signal to thread
+    pthread_cond_broadcast(&queue_not_empty);
+
+    return request->op_n;
 }
 
 /* Executa uma operação na árvore (indicada pelo opcode contido em msg)
@@ -125,18 +184,10 @@ int invoke(MessageT *msg){
             }
             break;
         case MESSAGE_T__OPCODE__OP_DEL: {
-            struct data_t *data = tree_get(tree, msg->key);
-            if(msg->c_type == MESSAGE_T__C_TYPE__CT_KEY && (data != NULL)){
-                msg->opcode = MESSAGE_T__OPCODE__OP_DEL + 1;
-                msg->c_type = MESSAGE_T__C_TYPE__CT_NONE;
-                tree_del(tree, msg->key);
-            }
-            else{
-                msg->opcode = MESSAGE_T__OPCODE__OP_ERROR;
-                msg->c_type = MESSAGE_T__C_TYPE__CT_NONE;
-                return -1;
-            }
-            if (data != NULL) data_destroy(data);
+            msg->opcode = MESSAGE_T__OPCODE__OP_DEL + 1;
+            msg->c_type = MESSAGE_T__C_TYPE__CT_NONE;
+            msg->op_n = tree_skel_del(msg->key);
+            
             break;
         }
         case MESSAGE_T__OPCODE__OP_GET:
@@ -172,10 +223,9 @@ int invoke(MessageT *msg){
 
                 struct data_t *data = data_create(msg->entry->value->datasize);
                 memcpy(data->data, msg->entry->value->data, msg->entry->value->datasize);
-                if(tree_put(tree, msg->entry->key, data)){
-                    msg->opcode = MESSAGE_T__OPCODE__OP_ERROR;
-                    msg->c_type = MESSAGE_T__C_TYPE__CT_NONE;
-                }
+
+                msg->op_n = tree_skel_put(msg->entry->key, data);
+                
                 data_destroy(data);
             }
             else{
