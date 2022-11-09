@@ -36,13 +36,13 @@ int tree_skel_init(int N){
     }
     
     //create N secondary threads
-    pthread_t threads[N];
-    int i;
-    // for(i = 0; i < N; i++){
-    //     if(pthread_create(&threads[i], NULL, &process_request, NULL) != 0){
-    //         return -1;
-    //     }
-    // }
+    pthread_t threads[N]; //array of threads
+    for(int i = 0; i < N; i++){
+        if(pthread_create(&threads[i], NULL, &process_request, NULL) != 0) //create thread
+            return -1;
+        else 
+            printf("Thread %d created\n", i);
+    }
 
     return 0;
 }
@@ -50,7 +50,7 @@ int tree_skel_init(int N){
 /* Liberta toda a memória e recursos alocados pela função tree_skel_init.
  */
 void tree_skel_destroy(){
-    tree_destroy(tree);
+    if(tree != NULL) tree_destroy(tree);
 }
 
 /* Verifica se a operação identificada por op_n foi executada.
@@ -63,21 +63,28 @@ int verify(int op_n){
 /* Função da thread secundária que vai processar pedidos de escrita.
 */
 void * process_request (void *params){
-    // while(1){
-    //     pthread_mutex_lock(&queue_lock);
-    //     while(queue_head == NULL){
-    //         pthread_cond_wait(&queue_not_empty, &queue_lock);
-    //     }
-    //     struct request_t *request = queue_head;
-    //     queue_head = queue_head->next;
-    //     pthread_mutex_unlock(&queue_lock);
+    while(1){
+        pthread_mutex_lock(&queue_lock);
+        while(queue_head == NULL){
+            pthread_cond_wait(&queue_not_empty, &queue_lock);
+        }
+        struct request_t *request = queue_head;
+        queue_head = queue_head->next;
+        pthread_mutex_unlock(&queue_lock);
         
-    //     //process request
-    //     struct message_t *msg = request->msg;
-    //     struct message_t *response = invoke(msg);
-    //     request->response = response;
-    //     request->done = 1;
-    // }
+        //handle request
+        if(request->op == 0){ //delete
+            pthread_mutex_lock(&tree_lock);
+            tree_delete(tree, request->key);
+            pthread_mutex_unlock(&tree_lock);
+        }
+        else if(request->op == 1){ //put
+            pthread_mutex_lock(&tree_lock);
+            tree_put(tree, request->key, request->data);
+            pthread_mutex_unlock(&tree_lock);
+        }
+        
+    }
     return;
 }
 
@@ -222,18 +229,18 @@ int invoke(MessageT *msg){
                 return -1;
             }
             break;
-        // case MESSAGE_T__OPCODE__OP_VERIFY:                      // CHECK THIS LATER
-        //     if(msg->c_type == MESSAGE_T__C_TYPE__CT_NONE){
-        //         msg->opcode = MESSAGE_T__OPCODE__OP_VERIFY + 1;
-        //         msg->c_type = MESSAGE_T__C_TYPE__CT_NONE;
-        //         msg->result = tree_verify(tree);
-        //     }
-        //     else{
-        //         msg->opcode = MESSAGE_T__OPCODE__OP_ERROR;
-        //         msg->c_type = MESSAGE_T__C_TYPE__CT_NONE;
-        //         return -1;
-        //     }
-        //     break;
+        case MESSAGE_T__OPCODE__OP_VERIFY:                      // CHECK THIS LATER
+            if(msg->c_type == MESSAGE_T__C_TYPE__CT_NONE){
+                msg->opcode = MESSAGE_T__OPCODE__OP_VERIFY + 1;
+                msg->c_type = MESSAGE_T__C_TYPE__CT_NONE;
+                msg->result = verify(msg->op_n);
+            }
+            else{
+                msg->opcode = MESSAGE_T__OPCODE__OP_ERROR;
+                msg->c_type = MESSAGE_T__C_TYPE__CT_NONE;
+                return -1;
+            }
+            break;
         default:
             msg->opcode = MESSAGE_T__OPCODE__OP_BAD;
             msg->c_type = MESSAGE_T__C_TYPE__CT_NONE;

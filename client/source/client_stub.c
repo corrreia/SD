@@ -49,7 +49,7 @@ struct rtree_t *rtree_connect(const char *address_port){
     char *address = strtok(ap_copy, ":");  
     char *port = strtok(NULL, "\0");
 
-    printf("address: %s \nport: %s \n", address, port);
+    //printf("address: %s \nport: %s \n", address, port); //not needed tbh
 
     //populate rtree struct and call network_connect()
 
@@ -62,16 +62,19 @@ struct rtree_t *rtree_connect(const char *address_port){
         //address is a hostname
         struct hostent *host = gethostbyname(address);
         //print converted IP
-        printf("coverted IP: %s\n", inet_ntoa(*((struct in_addr *)host->h_addr)));
+        printf("Provided address is a hostname, converted IP is: %s\n", inet_ntoa(*((struct in_addr *)host->h_addr)));
         if(host == NULL){
             printf("Error getting host by name\n");
+            free(ap_copy);
+            free(host); //?check if this is necessary
             return NULL;
         }
         memcpy(&rtree->server.sin_addr, host->h_addr, host->h_length);
+        free(host); //?check if this is necessary
     }
 
     if(network_connect(rtree) < 0){
-        //rtree_disconnect(rtree);
+        rtree_disconnect(rtree);
         free(ap_copy);
         return NULL;
     }
@@ -359,7 +362,7 @@ int rtree_verify(struct rtree_t *rtree, int op_n){
         return -1;
     }
 
-    int result = msg->result;
+    int result = msg->result; 
     message_t__free_unpacked(msg, NULL);
 
     return result;
