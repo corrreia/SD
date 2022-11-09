@@ -10,6 +10,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <unistd.h>
+#include <netdb.h>
 
 #include "../include/data.h"
 #include "../include/entry.h"
@@ -55,9 +56,18 @@ struct rtree_t *rtree_connect(const char *address_port){
     rtree->server.sin_family = AF_INET;
     rtree->server.sin_port = htons(atoi(port));
 
-    if(inet_pton(AF_INET, address, &rtree->server.sin_addr) < 1){
-        perror("Error converting address\n");
-        return NULL;
+
+    //check if address is an IP or a hostname
+    if(inet_pton(AF_INET, address, &rtree->server.sin_addr) <= 0){
+        //address is a hostname
+        struct hostent *host = gethostbyname(address);
+        //print converted IP
+        printf("coverted IP: %s\n", inet_ntoa(*((struct in_addr *)host->h_addr)));
+        if(host == NULL){
+            printf("Error getting host by name\n");
+            return NULL;
+        }
+        memcpy(&rtree->server.sin_addr, host->h_addr, host->h_length);
     }
 
     if(network_connect(rtree) < 0){

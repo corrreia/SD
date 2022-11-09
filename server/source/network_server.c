@@ -20,7 +20,7 @@
 #include "../include/sdmessage.pb-c.h"
 #include "../include/message-private.h"
 
-#define NFDESC 6 // numero de sockets (uma para o listening)
+#define NFDESC 6 // numero de sockets (uma para o listening) 1 para o listening e 5 para os clientes
 
 struct sockaddr_in server_addr;
 int server_socket;
@@ -100,7 +100,8 @@ int network_main_loop(int listening_socket){
         if((connections[0].revents & POLLIN) && (nfds < NFDESC)){  // se o listening socket está pronto a ler e ainda há espaço na estrutura de poll
             if((connections[nfds].fd = accept(connections[0].fd,(struct sockaddr *) &client, &size_client)) > 0){ // aceitar a ligação do cliente
                 connections[nfds].events = POLLIN; // colocar o evento que se pretende verificar no descritor (POLLIN - para verificar se é possível ler sem bloquear)
-                printf("Client %d Connected\n", nfds);  //TODO: mostrar ip do cliente
+                //getsockname(nfds, (struct sockaddr *) &client, &size_client); // obter o endereço do cliente
+                printf("Client %d connected - IP: %s:%d\n", nfds, inet_ntoa(client.sin_addr), ntohs(client.sin_port));
                 nfds++;
             }
         }
@@ -191,7 +192,6 @@ int network_send(int client_socket, MessageT *msg){
  */
 int network_server_close(){
     close(server_socket);
-    //free(server_addr); wtf
     return 0;
 }
 
