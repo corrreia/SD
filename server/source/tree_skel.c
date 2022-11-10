@@ -18,11 +18,13 @@
 
 struct tree_t *tree = NULL;
 struct request_t *queue_head;
+int n_threads;
+pthread_t *threads;
 pthread_mutex_t queue_lock, tree_lock  = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t queue_not_empty =  PTHREAD_COND_INITIALIZER;
 
 int last_assigned = 1; 
-struct op_proc *op_procs = NULL;
+struct op_proc op_procs;
 
 
 /* Inicia o skeleton da árvore.
@@ -33,13 +35,14 @@ struct op_proc *op_procs = NULL;
 * Retorna 0 (OK) ou -1 (erro, por exemplo OUT OF MEMORY)
 */
 int tree_skel_init(int N){
+    n_threads = N;
     tree = tree_create();
     if(tree == NULL){
         return -1;
     }
     
     //create N secondary threads
-    pthread_t threads[N]; //array of threads
+    threads = (pthread_t *) malloc(N * sizeof(pthread_t));
     for(int i = 0; i < N; i++){
         if(pthread_create(&threads[i], NULL, &process_request, NULL) != 0) //create thread
             return -1;
@@ -47,15 +50,11 @@ int tree_skel_init(int N){
             printf("Thread %d created\n", i);
     }
 
-    // initialize op_procs atributes with 0
-    op_procs = (struct op_proc *) malloc(sizeof(struct op_proc) * N);
+    //initialize op_procs
+    op_procs.max_proc = 0;  //max op_n ever processed
+    op_procs.in_progress = calloc(N, sizeof(int)); //array of N ints
     for(int i = 0; i < N; i++){
-        op_procs[i].max_proc= 0;
-        // initialize in_progress with 0
-        op_procs[i].in_progress = (int *) malloc(sizeof(int) * N);
-        for(int j = 0; j < N; j++){
-            op_procs[i].in_progress[j] = 0;
-        }
+        op_procs.in_progress[i] = 0;
     }
 
     return 0;
@@ -65,13 +64,23 @@ int tree_skel_init(int N){
  */
 void tree_skel_destroy(){
     if(tree != NULL) tree_destroy(tree);
+    if(op_procs.in_progress != NULL) free(op_procs.in_progress);
+    free(queue_head);
+    //exit threads
+    for(int i = 0; i < n_threads; i++){
+        pthread_cancel(threads[i]);
+    }
+    free(threads);
 }
 
 /* Verifica se a operação identificada por op_n foi executada.
 */
 int verify(int op_n){
-    //TODO
-    return 0;
+    // -1 error, 0 still in line, 1 processed, 2 non existent
+    if(op_n > op_procs.max_proc) return 2; //op_n never processed   
+    if(op_procs.in_progress[op_n] == 0) return 0; //still in line
+    if(op_procs.in_progress[op_n] == 1) return 1; //processed
+    return -1; //error
 }
 
 /* Função da thread secundária que vai processar pedidos de escrita.
@@ -84,22 +93,31 @@ void * process_request (void *params){
         }
         struct request_t *request = queue_head;
         queue_head = queue_head->next;
+        int i = 0;
+        while(op_procs.in_progress[i] != 0){
+            i++;
+        }
+        op_procs.in_progress[i] = request->op_n;
+
         pthread_mutex_unlock(&queue_lock);
         
         //handle request
         if(request->op == 0){ //delete
             pthread_mutex_lock(&tree_lock);
             tree_del(tree, request->key);
+            op_procs.max_proc = request->op_n;  //last op_n processed
             pthread_mutex_unlock(&tree_lock);
         }
         else if(request->op == 1){ //put
             pthread_mutex_lock(&tree_lock);
             tree_put(tree, request->key, request->data);
+            op_procs.max_proc = request->op_n; //update max_proc to op_n
             pthread_mutex_unlock(&tree_lock);
         }
         
+        op_procs.in_progress[i] = 0; //free op_n
     }
-    return;
+    return NULL;
 }
 
 struct request_t *get_last_request(struct request_t *head){

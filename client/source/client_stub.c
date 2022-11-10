@@ -121,9 +121,11 @@ int rtree_put(struct rtree_t *rtree, struct entry_t *entry){
         return -1;
     }
 
+    int opcode = msg->op_n;
+
     message_t__free_unpacked(msg, NULL);    
 
-    return 0;
+    return opcode;
 }
 
 /* Função para obter um elemento da árvore.
@@ -188,9 +190,11 @@ int rtree_del(struct rtree_t *rtree, char *key){
         return -1;
     }
 
+    int opcode = msg->op_n;
+
     message_t__free_unpacked(msg, NULL);
 
-    return 0;
+    return opcode;
 }
 
 /* Devolve o número de elementos contidos na árvore.

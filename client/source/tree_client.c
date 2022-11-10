@@ -185,6 +185,33 @@ int main(int argc, char **argv){
             }
         }
 
+        //verify <op_n>
+        else if(strncmp(command, "verify", 6) == 0){
+            char *op_n = strtok(command, " ");
+            op_n = strtok(NULL, " ");
+
+            if(op_n == NULL){
+                printf("Usage: verify <op_n>\n");
+                continue;
+            }
+
+            int op_n_int = atoi(op_n);
+            int verify = rtree_verify(rtree, op_n_int);
+            // -1 error, 0 still in line, 1 processed, 2 non existent
+            if(verify == -1){
+                printf("Error verifying operation\n");
+            }
+            else if(verify == 0){
+                printf("Operation still in line\n");
+            }
+            else if(verify == 1){
+                printf("Operation processed\n");
+            }
+            else if(verify == 2){
+                printf("Operation non existent\n");
+            }
+        }
+
 
         else if(strcmp(command, "help") == 0){
             printf("Avaliable commands:\n");
