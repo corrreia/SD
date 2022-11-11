@@ -26,6 +26,7 @@ pthread_cond_t queue_not_empty =  PTHREAD_COND_INITIALIZER;
 int last_assigned = 1; 
 struct op_proc op_procs;
 
+int thread_term = 0;
 
 /* Inicia o skeleton da árvore.
 * O main() do servidor deve chamar esta função antes de poder usar a
@@ -66,7 +67,8 @@ void tree_skel_destroy(){
     if(tree != NULL) tree_destroy(tree);
     if(op_procs.in_progress != NULL) free(op_procs.in_progress);
     free(queue_head);
-    //exit threads
+    thread_term = 1;
+    //destroy threads
     for(int i = 0; i < n_threads; i++){
         pthread_cancel(threads[i]);
     }
@@ -87,6 +89,8 @@ int verify(int op_n){
 */
 void * process_request (void *params){
     while(1){
+        if(thread_term == 1) break;
+
         pthread_mutex_lock(&queue_lock);
         while(queue_head == NULL){
             pthread_cond_wait(&queue_not_empty, &queue_lock);
