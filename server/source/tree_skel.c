@@ -44,7 +44,7 @@ int tree_skel_init(int N){
     
     //create N secondary threads
     threads = (pthread_t *) malloc(N * sizeof(pthread_t));
-    for(int i = 0; i < N; i++){
+    for(int i = 0; i < n_threads; i++){
         if(pthread_create(&threads[i], NULL, &process_request, NULL) != 0) //create thread
             return -1;
         else 
@@ -70,7 +70,7 @@ void tree_skel_destroy(){
     thread_term = 1;
     //destroy threads
     for(int i = 0; i < n_threads; i++){
-        pthread_cancel(threads[i]);
+        pthread_join(threads[i], NULL);
     }
     free(threads);
 }
