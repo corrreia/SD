@@ -104,6 +104,7 @@ void * process_request (void *params){
     int thread_id;
     memcpy(&thread_id, params, sizeof(int));
     free(params);
+    printf("Thread %d started\n", thread_id);
     while(thread_term){
         pthread_mutex_lock(&queue_lock);
         while(queue_head == NULL){
@@ -127,19 +128,25 @@ void * process_request (void *params){
     return NULL;
 }
 
-int add_to_queue(struct request_t *queue, struct request_t *request){
-    printf("Adding to queue");
-    if(queue == NULL){
-        printf("Queue was empty");
-        queue = request;
-        return 0;
-    }else
-        return add_to_queue(queue->next, request);
+int add_to_queue(struct request_t *request){
+    pthread_mutex_lock(&queue_lock);
+    if(queue_head == NULL){
+        queue_head = request;
+        pthread_cond_signal(&queue_not_empty);
+    }
+    else{
+        struct request_t *aux = queue_head;
+        while(aux->next != NULL){
+            aux = aux->next;
+        }
+        aux->next = request;
+    }
+    pthread_mutex_unlock(&queue_lock);
+    return 0;
 }
 
-
 int tree_skel_put(char* key, struct data_t *value){
-    printf("tree_skel_put");
+    printf("tree_skel_put\n");
     struct request_t *request = (struct request_t *) malloc(sizeof(struct request_t));
     request->next = NULL;
     request->op_n = last_assigned;
@@ -147,17 +154,14 @@ int tree_skel_put(char* key, struct data_t *value){
     request->key = key;
     request->data = value;
 
-    pthread_mutex_lock(&queue_lock);
-    add_to_queue(queue_head, request);
-    pthread_cond_signal(&queue_not_empty);
-    pthread_mutex_unlock(&queue_lock);
+    add_to_queue(request);
 
     last_assigned++;
     return last_assigned - 1;
 }
 
 int tree_skel_del(char* key){
-    printf("tree_skel_del");
+    printf("tree_skel_del\n");
     struct request_t *request = (struct request_t *) malloc(sizeof(struct request_t));
     request->next = NULL;
     request->op_n = last_assigned;
@@ -165,10 +169,7 @@ int tree_skel_del(char* key){
     request->key = key;
     request->data = NULL;
 
-    pthread_mutex_lock(&queue_lock); //lock queue
-    add_to_queue(queue_head, request); //add request to queue
-    pthread_cond_signal(&queue_not_empty); //signal queue is not empty
-    pthread_mutex_unlock(&queue_lock); //unlock queue
+    add_to_queue(request); //add request to queue
 
     last_assigned++; //increment last_assigned
     return last_assigned - 1;
