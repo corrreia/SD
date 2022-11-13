@@ -113,11 +113,12 @@ int main(int argc, char **argv){
             memcpy(data_t->data, data, strlen(data)+1);
             struct entry_t *entry_t = entry_create(strdup(key), data_t);
             
-            if(rtree_put(rtree, entry_t) == -1){
+            int result = rtree_put(rtree, entry_t);
+            if(result == -1){
                 printf("Error putting entry\n");
             }
             else{
-                printf("Entry successfully put\n");
+                printf("Entry put, OP: %d\n", result);
             }
             entry_destroy(entry_t);
         }
@@ -155,11 +156,12 @@ int main(int argc, char **argv){
                 continue;
             }
 
-            if(rtree_del(rtree, strdup(key)) == -1){
+            int result = rtree_del(rtree, strdup(key));
+            if(result == -1){
                 printf("Error deleting entry\n");
             }
             else{
-                printf("Entry successfully deleted\n");
+                printf("Entry deleted, OP: %d\n", result);
             }
         }
 
@@ -197,18 +199,12 @@ int main(int argc, char **argv){
 
             int op_n_int = atoi(op_n);
             int verify = rtree_verify(rtree, op_n_int);
-            // -1 error, 0 still in line, 1 processed, 2 non existent
-            if(verify == -1){
-                printf("Error verifying operation\n");
+            //1 if done, 0 if not
+            if(verify == 0){
+                printf("Operation not processed\n");
             }
-            else if(verify == 0){
-                printf("Operation still in line\n");
-            }
-            else if(verify == 1){
-                printf("Operation processed\n");
-            }
-            else if(verify == 2){
-                printf("Operation non existent\n");
+            else{
+                printf("Operation already processed\n");
             }
         }
 
@@ -222,6 +218,7 @@ int main(int argc, char **argv){
             printf("height\n");
             printf("getkeys\n");
             printf("getvalues\n");
+            printf("verify <op_n>\n");
             printf("quit\n");
         }
 

@@ -17,7 +17,7 @@
 #include "../include/sdmessage.pb-c.h"
 
 struct tree_t *tree = NULL;
-struct request_t *queue_head;
+struct request_t *queue_head = NULL;
 int n_threads;
 pthread_t *threads;
 pthread_mutex_t queue_lock, tree_lock  = PTHREAD_MUTEX_INITIALIZER;
@@ -26,7 +26,7 @@ pthread_cond_t queue_not_empty =  PTHREAD_COND_INITIALIZER;
 int last_assigned = 1; 
 struct op_proc op_procs;
 
-int thread_term = 0;
+int thread_term = 1;
 
 /* Inicia o skeleton da árvore.
 * O main() do servidor deve chamar esta função antes de poder usar a
@@ -40,22 +40,26 @@ int tree_skel_init(int N){
     tree = tree_create();
     if(tree == NULL){
         return -1;
-    }
+    }    
     
     //create N secondary threads
-    threads = (pthread_t *) malloc(N * sizeof(pthread_t));
+    pthread_t threads_i[N];
     for(int i = 0; i < n_threads; i++){
-        if(pthread_create(&threads[i], NULL, &process_request, NULL) != 0) //create thread
+        void *arg = (void*)malloc(sizeof(int));
+        memcpy(arg, &i, sizeof(int));
+        if(pthread_create(&threads_i[i], NULL, &process_request, arg) != 0) //create thread
             return -1;
         else 
             printf("Thread %d created\n", i);
     }
 
+    threads = threads_i;
+
     //initialize op_procs
     op_procs.max_proc = 0;  //max op_n ever processed
     op_procs.in_progress = calloc(N, sizeof(int)); //array of N ints
-    for(int i = 0; i < N; i++){
-        op_procs.in_progress[i] = 0;
+    for(int i = 0; i < N; i++){   //initialize all to 0
+        op_procs.in_progress[i] = 0;   //if 0, op_n is not being processed, if 1, it is
     }
 
     return 0;
@@ -67,106 +71,107 @@ void tree_skel_destroy(){
     if(tree != NULL) tree_destroy(tree);
     if(op_procs.in_progress != NULL) free(op_procs.in_progress);
     free(queue_head);
-    thread_term = 1;
-    //destroy threads
+
+    //! THE THREADS ARRAY IS NOT THE SAME AS THE THREADS CREATED IN tree_skel_init !! I DONT KNOW HOW TO FREE IT
+    thread_term = 0;
     for(int i = 0; i < n_threads; i++){
-        pthread_join(threads[i], NULL);
+        if(pthread_join(threads[i], NULL) != 0) //wait for thread to finish
+            return;
+        else 
+            printf("Thread %d joined\n", i);
     }
     free(threads);
+
+    //free queue
+    while(queue_head != NULL){
+        struct request_t *aux = queue_head;
+        queue_head = queue_head->next;
+        free(aux);
+    }
 }
 
 /* Verifica se a operação identificada por op_n foi executada.
 */
 int verify(int op_n){
-    // -1 error, 0 still in line, 1 processed, 2 non existent
-    if(op_n > op_procs.max_proc) return 2; //op_n never processed   
-    if(op_procs.in_progress[op_n] == 0) return 0; //still in line
-    if(op_procs.in_progress[op_n] == 1) return 1; //processed
-    return -1; //error
+    //return 1 if done, 0 if not
+    if(op_n > op_procs.max_proc) return 0; //op_n is not in the array
+    return 1;
 }
 
 /* Função da thread secundária que vai processar pedidos de escrita.
 */
 void * process_request (void *params){
-    while(1){
-        if(thread_term == 1) break;
-
+    int thread_id;
+    memcpy(&thread_id, params, sizeof(int));
+    free(params);
+    while(thread_term){
         pthread_mutex_lock(&queue_lock);
         while(queue_head == NULL){
             pthread_cond_wait(&queue_not_empty, &queue_lock);
         }
         struct request_t *request = queue_head;
+        op_procs.in_progress[thread_id] = queue_head->op_n;
         queue_head = queue_head->next;
-        int i = 0;
-        while(op_procs.in_progress[i] != 0){
-            i++;
-        }
-        op_procs.in_progress[i] = request->op_n;
-
         pthread_mutex_unlock(&queue_lock);
         
         //handle request
-        if(request->op == 0){ //delete
-            pthread_mutex_lock(&tree_lock);
+        pthread_mutex_lock(&tree_lock);
+        if(request->op == 0) //delete
             tree_del(tree, request->key);
-            op_procs.max_proc = request->op_n;  //last op_n processed
-            pthread_mutex_unlock(&tree_lock);
-        }
-        else if(request->op == 1){ //put
-            pthread_mutex_lock(&tree_lock);
+        else if(request->op == 1) //put
             tree_put(tree, request->key, request->data);
-            op_procs.max_proc = request->op_n; //update max_proc to op_n
-            pthread_mutex_unlock(&tree_lock);
-        }
-        
-        op_procs.in_progress[i] = 0; //free op_n
+        op_procs.max_proc = request->op_n;  //last op_n processed
+        op_procs.in_progress[thread_id] = 0;  //set op_n as not being processed in this thread
+        pthread_mutex_unlock(&tree_lock);
     }
     return NULL;
 }
 
-struct request_t *get_last_request(struct request_t *head){
-    struct request_t *current = head;
-    while(current->next != NULL){
-        current = current->next;
-    }
-    return current;
+int add_to_queue(struct request_t *queue, struct request_t *request){
+    printf("Adding to queue");
+    if(queue == NULL){
+        printf("Queue was empty");
+        queue = request;
+        return 0;
+    }else
+        return add_to_queue(queue->next, request);
 }
 
 
 int tree_skel_put(char* key, struct data_t *value){
-    // add request to queue and send signal to thread
-    struct request_t *last_request = get_last_request(queue_head);
+    printf("tree_skel_put");
     struct request_t *request = (struct request_t *) malloc(sizeof(struct request_t));
+    request->next = NULL;
+    request->op_n = last_assigned;
     request->op = 1;
     request->key = key;
     request->data = value;
-    request->next = NULL;
-    request->op_n = last_request->op_n + 1;
 
-    last_request->next = request;    
+    pthread_mutex_lock(&queue_lock);
+    add_to_queue(queue_head, request);
+    pthread_cond_signal(&queue_not_empty);
+    pthread_mutex_unlock(&queue_lock);
 
-    //send signal to thread
-    pthread_cond_broadcast(&queue_not_empty);
-
-    return request->op_n;
+    last_assigned++;
+    return last_assigned - 1;
 }
 
 int tree_skel_del(char* key){
-    // add request to queue and send signal to thread
-    struct request_t *last_request = get_last_request(queue_head);
+    printf("tree_skel_del");
     struct request_t *request = (struct request_t *) malloc(sizeof(struct request_t));
+    request->next = NULL;
+    request->op_n = last_assigned;
     request->op = 0;
     request->key = key;
     request->data = NULL;
-    request->next = NULL;
-    request->op_n = last_request->op_n + 1;
 
-    last_request->next = request;    
+    pthread_mutex_lock(&queue_lock); //lock queue
+    add_to_queue(queue_head, request); //add request to queue
+    pthread_cond_signal(&queue_not_empty); //signal queue is not empty
+    pthread_mutex_unlock(&queue_lock); //unlock queue
 
-    //send signal to thread
-    pthread_cond_broadcast(&queue_not_empty);
-
-    return request->op_n;
+    last_assigned++; //increment last_assigned
+    return last_assigned - 1;
 }
 
 /* Executa uma operação na árvore (indicada pelo opcode contido em msg)
@@ -247,8 +252,6 @@ int invoke(MessageT *msg){
                 memcpy(data->data, msg->entry->value->data, msg->entry->value->datasize);
 
                 msg->op_n = tree_skel_put(msg->entry->key, data);
-                
-                data_destroy(data);
             }
             else{
                 msg->opcode = MESSAGE_T__OPCODE__OP_ERROR;
