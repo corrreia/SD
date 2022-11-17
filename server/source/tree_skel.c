@@ -43,17 +43,16 @@ int tree_skel_init(int N){
     }    
     
     //create N secondary threads
-    pthread_t threads_i[N];
+    //pthread_t threads[N]; but in malloc
+    threads = malloc(sizeof(pthread_t) * N);
     for(int i = 0; i < n_threads; i++){
         void *arg = (void*)malloc(sizeof(int));
         memcpy(arg, &i, sizeof(int));
-        if(pthread_create(&threads_i[i], NULL, &process_request, arg) != 0) //create thread
+        if(pthread_create(&threads[i], NULL, &process_request, arg) != 0) //create thread
             return -1;
         else 
             printf("Thread %d created\n", i);
     }
-
-    threads = threads_i;
 
     //initialize op_procs
     op_procs.max_proc = 0;  //max op_n ever processed

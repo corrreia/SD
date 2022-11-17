@@ -20,7 +20,7 @@
 #include "../include/sdmessage.pb-c.h"
 #include "../include/message-private.h"
 
-#define NFDESC 6 // numero de sockets (uma para o listening) 1 para o listening e 5 para os clientes
+#define NFDESC 6 // numero de sockets (uma para o listening) 1 para o listening e 5 para os clientes 
 
 struct sockaddr_in server_addr;
 int server_socket;
@@ -110,8 +110,7 @@ int network_main_loop(int listening_socket){
 
             if(connections[i].revents & POLLIN){
 
-                 MessageT *message = network_receive(connections[i].fd); // receber a mensagem do cliente
-
+                MessageT *message = network_receive(connections[i].fd); // receber a mensagem do cliente
                 if(message == NULL){
                     //printf("NULL message\n"); 
                     close(connections[i].fd);
@@ -137,8 +136,7 @@ int network_main_loop(int listening_socket){
         }
     }
     close(listening_socket);
-    return 0;
-    
+    return 0;  
 }
 
 
