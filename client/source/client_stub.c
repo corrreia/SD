@@ -63,6 +63,12 @@ struct rtree_t *rtree_connect(const char *address_port){
             printf("Error getting host by name\n");  //! problem here: when connecting to a host that doesent have a server running, it crashes
             return NULL;
         }
+
+        if(inet_pton(AF_INET, inet_ntoa(*((struct in_addr *)host->h_addr)), &rtree->server.sin_addr) <= 0){
+            printf("Error converting IP\n");
+            return NULL;
+        }
+
         memcpy(&rtree->server.sin_addr, host->h_addr, host->h_length);
     }
 
