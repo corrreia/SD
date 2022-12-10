@@ -15,14 +15,14 @@
 int main(int argc, char **argv){
     //first arg is the server port
 
-    if(argc != 3){
-        printf("Usage: %s <server_port> <nr of threads>\n", argv[0]);
+    if(argc != 2){
+        printf("Usage: %s <server_port> \n", argv[0]);
         exit(1);
     }
 
     int server_port = atoi(argv[1]);
 
-    if(tree_skel_init(atoi(argv[2])) != 0){
+    if(tree_skel_init() != 0){
         printf("Error initializing tree_skel\n");
         tree_skel_destroy();
         exit(1);

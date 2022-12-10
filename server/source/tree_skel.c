@@ -10,16 +10,19 @@
 #include <string.h>
 #include <pthread.h>
 
+// ZooKeeper client library and headers
+#include <zookeeper/zookeeper.h>
+
 #include "../include/tree_skel.h"
 #include "../include/tree-private.h"
 #include "../include/data.h"
 #include "../include/entry.h"
 #include "../include/sdmessage.pb-c.h"
 
+// Global variables
 struct tree_t *tree = NULL;
 struct request_t *queue_head = NULL;
-int n_threads;
-pthread_t *threads;
+pthread_t thread;
 pthread_mutex_t queue_lock, tree_lock  = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t queue_not_empty =  PTHREAD_COND_INITIALIZER;
 
@@ -28,6 +31,9 @@ struct op_proc op_procs;
 
 int thread_term = 1;
 
+// ZooKeeper client instance
+zhandle_t *zh = NULL;
+
 /* Inicia o skeleton da árvore.
 * O main() do servidor deve chamar esta função antes de poder usar a
 * função invoke().
@@ -35,31 +41,47 @@ int thread_term = 1;
 * pedidos de escrita na árvore.
 * Retorna 0 (OK) ou -1 (erro, por exemplo OUT OF MEMORY)
 */
-int tree_skel_init(int N){
-    n_threads = N;
-    tree = tree_create();
-    if(tree == NULL){
+int tree_skel_init(){
+    // Initialize ZooKeeper client
+    zh = zookeeper_init("localhost:2181", NULL, 10000, 0, 0, 0);
+    if (zh == NULL) {
+        fprintf(stderr, "Error initializing ZooKeeper client\n");
         return -1;
-    }    
-    
-    //create N secondary threads
-    //pthread_t threads[N]; but in malloc
-    threads = malloc(sizeof(pthread_t) * N);
-    for(int i = 0; i < n_threads; i++){
-        void *arg = (void*)malloc(sizeof(int));
-        memcpy(arg, &i, sizeof(int));
-        if(pthread_create(&threads[i], NULL, &process_request, arg) != 0) //create thread
-            return -1;
-        else 
-            printf("Thread %d created\n", i);
     }
 
-    //initialize op_procs
-    op_procs.max_proc = 0;  //max op_n ever processed
-    op_procs.in_progress = calloc(N, sizeof(int)); //array of N ints
-    for(int i = 0; i < N; i++){   //initialize all to 0
-        op_procs.in_progress[i] = 0;   //if 0, op_n is not being processed, if 1, it is
+    // Create root node for the tree
+    int rc = zoo_create(zh, "/kvstore", NULL, -1, &ZOO_OPEN_ACL_UNSAFE, 0, NULL, 0);
+    if (rc != ZOK) {
+        fprintf(stderr, "Error creating root node for the tree\n");
+        zookeeper_close(zh);
+        return -1;
     }
+
+    // Create a new tree instance
+    tree = tree_create();
+    if(tree == NULL){
+        zookeeper_close(zh);
+        return -1;
+    }    
+
+    // Initialize tree using the root node created in ZooKeeper
+    if (tree_init(tree, zh, "/kvstore") != 0) {
+        fprintf(stderr, "Error initializing tree\n");
+        zookeeper_close(zh);
+        tree_destroy(tree);
+        return -1;
+    }
+
+    // Create a thread to process requests
+    if(pthread_create(&thread, NULL, process_request, NULL) != 0){
+        zookeeper_close(zh);
+        tree_destroy(tree);
+        return -1;
+    }
+
+    // Initialize op_procs
+    op_procs.max_proc = 0;  //max op_n ever processed
+    op_procs.in_progress = 0; //op_n currently being processed
 
     return 0;
 }
@@ -68,31 +90,29 @@ int tree_skel_init(int N){
  */
 void tree_skel_destroy(){
     if(tree != NULL) tree_destroy(tree);
-    if(op_procs.in_progress != NULL) free(op_procs.in_progress);
     free(queue_head);
 
-    //! THE THREADS ARRAY IS NOT THE SAME AS THE THREADS CREATED IN tree_skel_init !! I DONT KNOW HOW TO FREE IT
+    // Terminate thread
     thread_term = 0;
-    for(int i = 0; i < n_threads; i++){
-        if(pthread_join(threads[i], NULL) != 0) //wait for thread to finish
-            return;
-        else 
-            printf("Thread %d joined\n", i);
-    }
-    free(threads);
+    pthread_cond_signal(&queue_not_empty);
+    pthread_join(thread, NULL);
 
-    //free queue
-    while(queue_head != NULL){
-        struct request_t *aux = queue_head;
+    // Free queue
+    struct request_t *aux = queue_head;
+    while(aux != NULL){
         queue_head = queue_head->next;
         free(aux);
+        aux = queue_head;
     }
+
+    // Close ZooKeeper client
+    zookeeper_close(zh);
 }
 
 /* Verifica se a operação identificada por op_n foi executada.
 */
 int verify(int op_n){
-    //return 1 if done, 0 if not
+    // Return 1 if done, 0 if not
     if(op_n > op_procs.max_proc) return 0; //op_n is not in the array
     return 1;
 }
@@ -100,30 +120,39 @@ int verify(int op_n){
 /* Função da thread secundária que vai processar pedidos de escrita.
 */
 void * process_request (void *params){
-    int thread_id;
-    memcpy(&thread_id, params, sizeof(int));
-    free(params);
-    printf("Thread %d started\n", thread_id);
+    printf("Thread started\n");
     while(thread_term){
         pthread_mutex_lock(&queue_lock);
         while(queue_head == NULL){
             pthread_cond_wait(&queue_not_empty, &queue_lock);
         }
         struct request_t *request = queue_head;
-        op_procs.in_progress[thread_id] = queue_head->op_n;
+        op_procs.in_progress = queue_head->op_n;
         queue_head = queue_head->next;
         pthread_mutex_unlock(&queue_lock);
-        
-        //handle request
+
+        // Handle request
         pthread_mutex_lock(&tree_lock);
-        if(request->op == 0) //delete
-            tree_del(tree, request->key);
-        else if(request->op == 1) //put
-            tree_put(tree, request->key, request->data);
-        op_procs.max_proc = request->op_n;  //last op_n processed
-        op_procs.in_progress[thread_id] = 0;  //set op_n as not being processed in this thread
+        if(request->op == 0) { // Delete
+            // Use ZooKeeper's delete() method to delete
+            int rc = zoo_delete(zh, request->key, -1);
+            if (rc != ZOK) {
+                fprintf(stderr, "Error deleting node %s from the tree\n", request->key);
+            }
+        } else if(request->op == 1) { // Put
+            // Use ZooKeeper's set() method to add a node to the tree
+            int rc = zoo_set(zh, request->key, request->data, -1, -1);
+            if (rc != ZOK) {
+                fprintf(stderr, "Error adding node %s to the tree\n", request->key);
+            }
+        }
+        op_procs.max_proc = request->op_n;
         pthread_mutex_unlock(&tree_lock);
+
+        // Free request
+        free(request);
     }
+
     return NULL;
 }
 
