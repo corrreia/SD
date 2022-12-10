@@ -33,6 +33,8 @@ int thread_term = 1;
 
 // ZooKeeper client instance
 zhandle_t *zh = NULL;
+const char *zoo_root = "/kvstore"; // path do node normal
+
 
 /* Inicia o skeleton da árvore.
 * O main() do servidor deve chamar esta função antes de poder usar a
@@ -65,8 +67,8 @@ int tree_skel_init(){
     }    
 
     // Initialize tree using the root node created in ZooKeeper
-    if (tree_init(tree, zh, "/kvstore") != 0) {
-        fprintf(stderr, "Error initializing tree\n");
+    struct node_t *root = node_create("/kvstore");
+    if(root == NULL){
         zookeeper_close(zh);
         tree_destroy(tree);
         return -1;
@@ -141,7 +143,7 @@ void * process_request (void *params){
             }
         } else if(request->op == 1) { // Put
             // Use ZooKeeper's set() method to add a node to the tree
-            int rc = zoo_set(zh, request->key, request->data, -1, -1);
+            int rc = zoo_set(zh, request->key, request->data->data, request->data->datasize, -1);
             if (rc != ZOK) {
                 fprintf(stderr, "Error adding node %s to the tree\n", request->key);
             }

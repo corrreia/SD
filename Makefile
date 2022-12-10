@@ -9,9 +9,9 @@
 PROTOC_DIR = /usr/
 
 CC = gcc
-CFLAGS = -Wall -pthread -g -O2 -lzookeeper_mt -I${PROTOC_DIR}include/  #zookeeper library
-LDFLAGS = ${PROTOC_DIR}lib/x86_64-linux-gnu/libprotobuf-c.a  #for debian/ubuntu (sudo apt-get install protobuf-compiler protobuf-c-compiler libprotobuf-c-dev)
-#LDFLAGS = ${PROTOC_DIR}lib64/libprotobuf-c.so  #for fedora/redhat (sudo dnf install protobuf-compiler protobuf-c-compiler libprotobuf-c-devel
+CFLAGS = -Wall -pthread -g -O2 -I${PROTOC_DIR}include/
+LDFLAGS = ${PROTOC_DIR}lib/x86_64-linux-gnu/libprotobuf-c.a -lzookeeper_mt #for debian/ubuntu (sudo apt-get install protobuf-compiler protobuf-c-compiler libprotobuf-c-dev)
+#LDFLAGS = ${PROTOC_DIR}lib64/libprotobuf-c.so  #for fedora/redhat (sudo dnf install protobuf-compiler protobuf-c-compiler libprotobuf-c-devel) #! coldnt find zookeeper_mt for fedora
 
 SERVER = server
 CLIENT = client
