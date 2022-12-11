@@ -37,4 +37,6 @@ int network_send(int client_socket, MessageT *msg);
  */
 int network_server_close();
 
+int network_zookeeper_init(char *zookeeper_addr, char *sPort);
+
 #endif

@@ -15,8 +15,8 @@
 int main(int argc, char **argv){
     //first arg is the server port
 
-    if(argc != 2){
-        printf("Usage: %s <server_port> \n", argv[0]);
+    if(argc != 3){
+        printf("Usage: %s <server_port> <zookeeper_address:zookeeper_port> \n", argv[0]);
         exit(1);
     }
 
@@ -32,6 +32,15 @@ int main(int argc, char **argv){
 
     if(socket == -1){
         printf("Error initializing server\n");
+        network_server_close();
+        tree_skel_destroy();
+        exit(1);
+    }
+
+    //init zookeeper connection network_zookeeper_init(char *zookeeper_addr, char * port)
+    int zookeeper_socket = network_zookeeper_init(argv[2], argv[1]);
+    if(zookeeper_socket == -1){
+        printf("Error initializing zookeeper\n");
         network_server_close();
         tree_skel_destroy();
         exit(1);

@@ -19,10 +19,6 @@
 #include "../include/network_client.h"
 #include "../include/sdmessage.pb-c.h"
 
-/* Remote tree. A definir pelo grupo em client_stub-private.h
- */
-//struct rtree_t;
-
 
 /* Função para estabelecer uma associação entre o cliente e o servidor, 
  * em que address_port é uma string no formato <hostname>:<port>.

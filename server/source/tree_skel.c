@@ -9,6 +9,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include <netdb.h>
+#include <unistd.h>
+#include <arpa/inet.h>
 
 // ZooKeeper client library and headers
 #include <zookeeper/zookeeper.h>
@@ -18,8 +21,11 @@
 #include "../include/data.h"
 #include "../include/entry.h"
 #include "../include/sdmessage.pb-c.h"
+#include "../include/zk-private.h"
 
 // Global variables
+#define ZPATHLEN 1024 
+
 struct tree_t *tree = NULL;
 struct request_t *queue_head = NULL;
 pthread_t thread;
@@ -33,8 +39,8 @@ int thread_term = 1;
 
 // ZooKeeper client instance
 zhandle_t *zh = NULL;
-const char *zoo_root = "/kvstore"; // path do node normal
-
+struct zk_info *zk_info;
+static char *watcher_ctx = "ZooKeeper Data Watcher";
 
 /* Inicia o skeleton da árvore.
 * O main() do servidor deve chamar esta função antes de poder usar a
@@ -44,33 +50,12 @@ const char *zoo_root = "/kvstore"; // path do node normal
 * Retorna 0 (OK) ou -1 (erro, por exemplo OUT OF MEMORY)
 */
 int tree_skel_init(){
-    // Initialize ZooKeeper client
-    zh = zookeeper_init("localhost:2181", NULL, 10000, 0, 0, 0);
-    if (zh == NULL) {
-        fprintf(stderr, "Error initializing ZooKeeper client\n");
-        return -1;
-    }
 
-    // Create root node for the tree
-    int rc = zoo_create(zh, "/kvstore", NULL, -1, &ZOO_OPEN_ACL_UNSAFE, 0, NULL, 0);
-    if (rc != ZOK) {
-        fprintf(stderr, "Error creating root node for the tree\n");
-        zookeeper_close(zh);
-        return -1;
-    }
+    zk_info = (struct zk_info *) malloc(sizeof(struct zk_info));
 
-    // Create a new tree instance
     tree = tree_create();
     if(tree == NULL){
         zookeeper_close(zh);
-        return -1;
-    }    
-
-    // Initialize tree using the root node created in ZooKeeper
-    struct node_t *root = node_create("/kvstore");
-    if(root == NULL){
-        zookeeper_close(zh);
-        tree_destroy(tree);
         return -1;
     }
 
@@ -133,6 +118,7 @@ void * process_request (void *params){
         queue_head = queue_head->next;
         pthread_mutex_unlock(&queue_lock);
 
+        
         // Handle request
         pthread_mutex_lock(&tree_lock);
         if(request->op == 0) { // Delete
@@ -162,7 +148,6 @@ int add_to_queue(struct request_t *request){
     pthread_mutex_lock(&queue_lock);
     if(queue_head == NULL){
         queue_head = request;
-        pthread_cond_signal(&queue_not_empty);
     }
     else{
         struct request_t *aux = queue_head;
@@ -171,6 +156,7 @@ int add_to_queue(struct request_t *request){
         }
         aux->next = request;
     }
+    pthread_cond_signal(&queue_not_empty);
     pthread_mutex_unlock(&queue_lock);
     return 0;
 }
@@ -355,4 +341,87 @@ int invoke(MessageT *msg){
     return msg->result;
 }
 
+static void child_watcher(zhandle_t *zzh, int type, int state, const char *path, void *watcherCtx){
+
+
+}
+
+void watcher(zhandle_t *zzh, int type, int state, const char *path, void *watcherCtx){
+    if (type == ZOO_SESSION_EVENT) {
+        if (state == ZOO_CONNECTED_STATE) {
+            zk_info->is_connected = 1;
+        } else {
+            zk_info->is_connected = 0;
+        }
+    }
+}
+
+int start_zookeeper(char *zookeeper_addr, char *server_port){
+
+    zk_info->zoo_root = "/chain";
+    zk_info->zoo_path = (char *) malloc(strlen(zk_info->zoo_root) + 6);
+    sprintf(zk_info->zoo_path, "%s/node", zk_info->zoo_root);
+
+    zk_info->zh = zookeeper_init(zookeeper_addr, watcher, 10000, 0, 0, 0);
+    if(zk_info->zh == NULL){
+        printf("Error connecting to zookeeper\n");
+        return -1;
+    }
+
+    //timeout to wait for connection to zookeeper
+    sleep(3);
+
+    if(zk_info->is_connected){ //if connected to zookeeper
+        
+        if(ZNONODE == zoo_exists(zk_info->zh, zk_info->zoo_root, 0, NULL)){
+            printf("The node %s does not exist. Creating it now...\n", zk_info->zoo_root);
+
+            //create the root node
+            if(ZOK == zoo_create(zk_info->zh, zk_info->zoo_root, NULL, -1, &ZOO_OPEN_ACL_UNSAFE, 0, NULL, 0)){
+                printf("Root node created\n");
+            }
+            else{
+                printf("Error creating root node\n");
+                free(zk_info);
+                return -1;
+            }
+        }
+    }
+
+    //convert to string and set the zk_info->identifier
+    // zk_info->identifier = (char *) malloc(4);
+    // sprintf(zk_info->identifier, "%ld", zk_info->children->count);
+    // printf("Server identifier: %s\n", zk_info->identifier);
+
+    //handle ip and stuff
+    char hostbuffer[256];
+    char *IPbuffer;
+    struct hostent *host_entry;  //* needs to be a global variable
+
+    char *portcpy = malloc(sizeof(int)+1);
+    gethostname(hostbuffer,sizeof(hostbuffer));
+    host_entry = gethostbyname(hostbuffer);
+    IPbuffer = inet_ntoa(*((struct in_addr*) host_entry->h_addr_list[0]));
+    strcat(IPbuffer,":");
+    sprintf(portcpy, "%s", server_port);
+    strcat(IPbuffer,portcpy);
+
+    char* nodePath = malloc(ZPATHLEN);
+
+    if(ZOK != zoo_create(zk_info->zh, zk_info->zoo_path, IPbuffer, 42, &ZOO_OPEN_ACL_UNSAFE, ZOO_EPHEMERAL | ZOO_SEQUENCE, nodePath, ZPATHLEN)){ //42 the answer to everything
+        printf("Error creating node\n");
+        free(zk_info);
+        return -1;
+    }
+
+    printf("Node created: %s\n", nodePath);
+
+    if(ZOK != zoo_wget_children(zk_info->zh, zk_info->zoo_root, child_watcher, watcher_ctx, zk_info->children)){
+        printf("Error getting children\n");
+        free(zk_info);
+        return -1;
+    }
+
+    return 0;
+}
 

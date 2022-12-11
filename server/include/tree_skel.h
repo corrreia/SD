@@ -58,4 +58,6 @@ int verify(int op_n);
 */
 void * process_request (void *params);
 
+int start_zookeeper(char *zookeeper_addr, char *server_port);
+
 #endif

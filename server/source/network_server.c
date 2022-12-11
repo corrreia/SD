@@ -193,3 +193,15 @@ int network_server_close(){
     return 0;
 }
 
+//int zookeeper
+int network_zookeeper_init(char *zookeeper_addr, char *sPort){
+
+  int value_zoo = start_zookeeper(zookeeper_addr, sPort);
+
+  if(value_zoo == -1){
+    return -1;
+  }
+
+  return 0;
+}
+
