@@ -4,6 +4,8 @@
 #include <netinet/in.h>
 
 struct rtree_t{
+    char *identifier;
+
     int socket;
     struct sockaddr_in server;
 };

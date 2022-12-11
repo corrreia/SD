@@ -3,6 +3,7 @@
 
 #include "sdmessage.pb-c.h"
 #include "tree.h"
+#include <zookeeper/zookeeper.h>
 
 struct request_t {
 int op_n; //o número da operação

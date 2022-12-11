@@ -32,8 +32,8 @@ int main(int argc, char **argv){
 
     printf("Connecting to server...\n");
 
-    rtree = rtree_connect(argv[1]);
-    if(rtree == NULL){
+    int i = rtree_connect(argv[1]);
+    if(i == -1){
         printf("Error connecting to server\n");
         return -1;
     }
@@ -113,7 +113,7 @@ int main(int argc, char **argv){
             memcpy(data_t->data, data, strlen(data)+1);
             struct entry_t *entry_t = entry_create(strdup(key), data_t);
             
-            int result = rtree_put(rtree, entry_t);
+            int result = rtree_put(entry_t);
             if(result == -1){
                 printf("Error putting entry\n");
             }
@@ -133,7 +133,7 @@ int main(int argc, char **argv){
                 continue;
             }
 
-            struct data_t *data_t = rtree_get(rtree, strdup(key));
+            struct data_t *data_t = rtree_get(strdup(key));
             if(data_t == NULL){
                 printf("Error getting entry\n");
             }else if(data_t->datasize == 0){
@@ -156,7 +156,7 @@ int main(int argc, char **argv){
                 continue;
             }
 
-            int result = rtree_del(rtree, strdup(key));
+            int result = rtree_del(strdup(key));
             if(result == -1){
                 printf("Error deleting entry\n");
             }
@@ -198,7 +198,7 @@ int main(int argc, char **argv){
             }
 
             int op_n_int = atoi(op_n);
-            int verify = rtree_verify(rtree, op_n_int);
+            int verify = rtree_verify(op_n_int);
             //1 if done, 0 if not
             if(verify == 0){
                 printf("Operation not processed\n");

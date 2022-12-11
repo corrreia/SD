@@ -10,6 +10,10 @@ struct zk_info {
     int is_connected; // 1 if connected to zookeeper, 0 otherwise
 
     char *identifier ; // this server identifier
+    
+    char *next_identifier; // next server identifier
+    struct sockaddr_in next_server; // socket of the next server
+    int next_socket; //socket number of this the next server
 
     zoo_string *children; // children list
 

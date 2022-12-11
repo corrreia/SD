@@ -22,6 +22,7 @@
 #include "../include/entry.h"
 #include "../include/sdmessage.pb-c.h"
 #include "../include/zk-private.h"
+#include "../include/network_server.h"
 
 // Global variables
 #define ZPATHLEN 1024 
@@ -121,19 +122,41 @@ void * process_request (void *params){
         
         // Handle request
         pthread_mutex_lock(&tree_lock);
-        if(request->op == 0) { // Delete
-            // Use ZooKeeper's delete() method to delete
-            int rc = zoo_delete(zh, request->key, -1);
-            if (rc != ZOK) {
-                fprintf(stderr, "Error deleting node %s from the tree\n", request->key);
-            }
-        } else if(request->op == 1) { // Put
-            // Use ZooKeeper's set() method to add a node to the tree
-            int rc = zoo_set(zh, request->key, request->data->data, request->data->datasize, -1);
-            if (rc != ZOK) {
-                fprintf(stderr, "Error adding node %s to the tree\n", request->key);
-            }
+        
+        if(request->op == 0){
+            tree_del(tree, request->key);
+            
+            MessageT *msg = malloc(message_t__descriptor.sizeof_message);
+            message_t__init(msg);
+
+            msg->key = request->key;
+            msg->opcode = MESSAGE_T__OPCODE__OP_DEL;
+            msg->c_type = MESSAGE_T__C_TYPE__CT_KEY;
+
+            network_send(zk_info->next_socket, msg);
+        }            
+
+        else if(request->op == 1){
+            tree_put(tree, request->key, request->data);
+
+            //create message
+            MessageT *msg = malloc(message_t__descriptor.sizeof_message);
+            message_t__init(msg);
+            msg->entry = malloc(message_t__entry__descriptor.sizeof_message);
+            message_t__entry__init(msg->entry);
+            msg->entry->value = malloc(message_t__data__descriptor.sizeof_message);
+            message_t__data__init(msg->entry->value);
+
+
+            msg->entry->key = request->key;
+            msg->entry->value->datasize = request->data->datasize;
+            msg->entry->value->data = request->data->data;
+            msg->opcode = MESSAGE_T__OPCODE__OP_PUT;
+            msg->c_type = MESSAGE_T__C_TYPE__CT_ENTRY;
+
+            network_send(zk_info->next_socket, msg);  //Send message to next server
         }
+
         op_procs.max_proc = request->op_n;
         pthread_mutex_unlock(&tree_lock);
 
@@ -341,20 +364,89 @@ int invoke(MessageT *msg){
     return msg->result;
 }
 
-static void child_watcher(zhandle_t *zzh, int type, int state, const char *path, void *watcherCtx){
+static void child_watcher(zhandle_t *wzh, int type, int state, const char *zpath, void *watcher_ctx) {
+	if (state != ZOO_CONNECTED_STATE && type != ZOO_CHILD_EVENT) {
+        return;
+    }   
 
+    zk_info->children = (zoo_string *) malloc(sizeof(zoo_string));
+		
+    /* Get the updated children and reset the watch */ 
+    if (ZOK != zoo_wget_children(zk_info->zh, zk_info->zoo_root, child_watcher, NULL, zk_info->children)) {
+        printf("Error watching children of %s\n", zk_info->zoo_root);
+        return;
+    }
 
+    char* nextPath = malloc(ZPATHLEN);
+    strcpy(nextPath, "NULL");  //nextPath is the path of the next node in the chain (NULL if there is no next node)
+
+    printf("Connecting to next node in chain");
+
+    for (int i = 0; i < zk_info->children->count; i++)  { //find the next node in the chain
+        if(strcmp(nextPath, "NULL") == 0 && strcmp(zk_info->children->data[i], zk_info->identifier) > 0)   //compares this identifier to data[i] and if data[i] is greater than this identifier, then exists a next node
+            strcpy(nextPath, zk_info->children->data[i]); // then exists a next node, so we set nextPath to the next node
+        
+        if(strcmp(zk_info->children->data[i], zk_info->identifier)>0 && strcmp(zk_info->children->data[i], nextPath)<0) //if the next node is greater than this identifier and less than the nextPath, then we set nextPath to the next node
+            strcpy(nextPath, zk_info->children->data[i]);
+    }
+
+    sleep(3); //wait 3 seconds before connecting to the next node (needed to avoid connection problems)
+
+    if(strcmp(nextPath, "NULL") != 0){ //if there is a next node, connect to it
+
+        zk_info->next_identifier= strdup(nextPath);
+        
+        int data_size = 100;
+        char *data = malloc(data_size); //data is the data of the next node in the chain, will be the ip and port of the next node in the chain
+
+        char dataPath[100];  //dataPath is the path of the next node in the chain
+        strcpy(dataPath, zk_info->zoo_root);
+        strcat(dataPath, "/");
+        strcat(dataPath, nextPath);
+
+        zoo_get(zk_info->zh, dataPath, 0, data, &data_size, NULL); //get the data of the next node in the chain
+        
+        //CONNECT TO THE NEXT NODE IN THE CHAIN
+        
+        //get host and port from data
+        char *host = strtok(data, ":");
+        int port = atoi(strtok(NULL, ":"));
+
+        zk_info->next_server.sin_family = AF_INET;
+        zk_info->next_server.sin_port = htons(port);
+
+        if (inet_pton(AF_INET, host, &zk_info->next_server.sin_addr) < 1) {
+            printf("Error converting IP address\n");
+            exit(1);
+        }
+        //Criar socket TCP
+        if((zk_info->next_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+            perror("Error creating TCP socket for the next node in the chain");
+            exit(1);
+        }
+        
+        //Estabelece conexao com o servidor
+        if(connect(zk_info->next_socket,(struct sockaddr *)&zk_info->next_server, sizeof(zk_info->next_server)) < 0){
+            perror("Error connecting to the next node in the chain");
+            close(zk_info->next_socket);
+            exit(1);
+        }
+
+        printf("Connected to next node in chain\n");
+        free(data);
+    }
+    free(nextPath);
+ 
 }
 
 void watcher(zhandle_t *zzh, int type, int state, const char *path, void *watcherCtx){
-    if (type == ZOO_SESSION_EVENT) {
-        if (state == ZOO_CONNECTED_STATE) {
+    if (type == ZOO_SESSION_EVENT){
+        if (state == ZOO_CONNECTED_STATE) 
             zk_info->is_connected = 1;
-        } else {
+        else 
             zk_info->is_connected = 0;
-        }
-    }
-}
+    } 
+}  
 
 int start_zookeeper(char *zookeeper_addr, char *server_port){
 
@@ -408,13 +500,18 @@ int start_zookeeper(char *zookeeper_addr, char *server_port){
 
     char* nodePath = malloc(ZPATHLEN);
 
-    if(ZOK != zoo_create(zk_info->zh, zk_info->zoo_path, IPbuffer, 42, &ZOO_OPEN_ACL_UNSAFE, ZOO_EPHEMERAL | ZOO_SEQUENCE, nodePath, ZPATHLEN)){ //42 the answer to everything
+    if(ZOK != zoo_create(zk_info->zh, zk_info->zoo_path, IPbuffer, 42, &ZOO_OPEN_ACL_UNSAFE, ZOO_EPHEMERAL | ZOO_SEQUENCE, nodePath, ZPATHLEN)){ //42 (THE ANSWER TO LIFE, THE UNIVERSE AND EVERYTHING)
         printf("Error creating node\n");
         free(zk_info);
         return -1;
     }
 
     printf("Node created: %s\n", nodePath);
+    
+    strtok(nodePath, "/");
+    zk_info->identifier = strdup(strtok(NULL, ""));
+
+    printf("Server identifier: %s\n", zk_info->identifier);
 
     if(ZOK != zoo_wget_children(zk_info->zh, zk_info->zoo_root, child_watcher, watcher_ctx, zk_info->children)){
         printf("Error getting children\n");
