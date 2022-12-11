@@ -61,7 +61,7 @@ int main(int argc, char **argv){
 
         // getkeys
         else if(strcmp(command, "getkeys") == 0){
-            char **keys = rtree_get_keys(rtree);
+            char **keys = (char **) rtree_get_keys(rtree);
             if(keys == NULL){
                 printf("Error getting keys\n");
             }

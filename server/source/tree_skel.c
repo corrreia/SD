@@ -125,36 +125,40 @@ void * process_request (void *params){
         
         if(request->op == 0){
             tree_del(tree, request->key);
-            
-            MessageT *msg = malloc(message_t__descriptor.sizeof_message);
-            message_t__init(msg);
 
-            msg->key = request->key;
-            msg->opcode = MESSAGE_T__OPCODE__OP_DEL;
-            msg->c_type = MESSAGE_T__C_TYPE__CT_KEY;
+            if(zk_info->next_socket != 0){
+                MessageT *msg = malloc(message_t__descriptor.sizeof_message);
+                message_t__init(msg);
 
-            network_send(zk_info->next_socket, msg);
+                msg->key = strdup(request->key);
+                msg->opcode = MESSAGE_T__OPCODE__OP_DEL;
+                msg->c_type = MESSAGE_T__C_TYPE__CT_KEY;
+
+                network_send(zk_info->next_socket, msg);
+            }
         }            
 
         else if(request->op == 1){
             tree_put(tree, request->key, request->data);
 
-            //create message
-            MessageT *msg = malloc(message_t__descriptor.sizeof_message);
-            message_t__init(msg);
-            msg->entry = malloc(message_t__entry__descriptor.sizeof_message);
-            message_t__entry__init(msg->entry);
-            msg->entry->value = malloc(message_t__data__descriptor.sizeof_message);
-            message_t__data__init(msg->entry->value);
+            if(zk_info->next_socket != 0){
+                //create message
+                MessageT *msg = malloc(message_t__descriptor.sizeof_message);
+                message_t__init(msg);
+                msg->entry = malloc(message_t__entry__descriptor.sizeof_message);
+                message_t__entry__init(msg->entry);
+                msg->entry->value = malloc(message_t__data__descriptor.sizeof_message);
+                message_t__data__init(msg->entry->value);
 
 
-            msg->entry->key = request->key;
-            msg->entry->value->datasize = request->data->datasize;
-            msg->entry->value->data = request->data->data;
-            msg->opcode = MESSAGE_T__OPCODE__OP_PUT;
-            msg->c_type = MESSAGE_T__C_TYPE__CT_ENTRY;
+                msg->entry->key = strdup(request->key);
+                msg->entry->value->datasize = request->data->datasize;
+                msg->entry->value->data = strdup(request->data->data);
+                msg->opcode = MESSAGE_T__OPCODE__OP_PUT;
+                msg->c_type = MESSAGE_T__C_TYPE__CT_ENTRY;
 
-            network_send(zk_info->next_socket, msg);  //Send message to next server
+                network_send(zk_info->next_socket, msg);  //Send message to next server
+            }
         }
 
         op_procs.max_proc = request->op_n;
@@ -185,7 +189,6 @@ int add_to_queue(struct request_t *request){
 }
 
 int tree_skel_put(char* key, struct data_t *value){
-    printf("tree_skel_put\n");
     struct request_t *request = (struct request_t *) malloc(sizeof(struct request_t));
     request->next = NULL;
     request->op_n = last_assigned;
@@ -200,7 +203,6 @@ int tree_skel_put(char* key, struct data_t *value){
 }
 
 int tree_skel_del(char* key){
-    printf("tree_skel_del\n");
     struct request_t *request = (struct request_t *) malloc(sizeof(struct request_t));
     request->next = NULL;
     request->op_n = last_assigned;
@@ -228,6 +230,7 @@ int invoke(MessageT *msg){
     switch(opcode){
         case MESSAGE_T__OPCODE__OP_SIZE:
             if(msg->c_type == MESSAGE_T__C_TYPE__CT_NONE){
+                printf("size request\n");
                 msg->opcode = MESSAGE_T__OPCODE__OP_SIZE + 1;
                 msg->c_type = MESSAGE_T__C_TYPE__CT_RESULT;
                 msg->result = tree_size(tree);
@@ -240,6 +243,7 @@ int invoke(MessageT *msg){
             break;
         case MESSAGE_T__OPCODE__OP_HEIGHT:
             if(msg->c_type == MESSAGE_T__C_TYPE__CT_NONE){
+                printf("height request\n");
                 msg->opcode = MESSAGE_T__OPCODE__OP_HEIGHT + 1;
                 msg->c_type = MESSAGE_T__C_TYPE__CT_RESULT;
                 msg->result = tree_height(tree);
@@ -253,12 +257,17 @@ int invoke(MessageT *msg){
         case MESSAGE_T__OPCODE__OP_DEL: {
             msg->opcode = MESSAGE_T__OPCODE__OP_DEL + 1;
             msg->c_type = MESSAGE_T__C_TYPE__CT_NONE;
-            msg->op_n = tree_skel_del(msg->key);
+
+            char *key = strdup(msg->key);
+
+            msg->op_n = tree_skel_del(key);
+            printf("del request\n");
             
             break;
         }
         case MESSAGE_T__OPCODE__OP_GET:
             if(msg->c_type == MESSAGE_T__C_TYPE__CT_KEY){
+                printf("get request\n");
                 struct data_t *data = tree_get(tree, msg->key);
                 if(data != NULL){
                     msg->opcode = MESSAGE_T__OPCODE__OP_GET + 1;
@@ -266,6 +275,7 @@ int invoke(MessageT *msg){
 
                     msg->value = malloc(message_t__data__descriptor.sizeof_message);
                     message_t__data__init(msg->value);
+
 
                     msg->value->data = strdup(data->data);
                     msg->value->datasize = data->datasize;
@@ -285,13 +295,16 @@ int invoke(MessageT *msg){
             break;
         case MESSAGE_T__OPCODE__OP_PUT:
             if(msg->c_type == MESSAGE_T__C_TYPE__CT_ENTRY){
+                printf("put request\n");
                 msg->opcode = MESSAGE_T__OPCODE__OP_PUT + 1;
                 msg->c_type = MESSAGE_T__C_TYPE__CT_NONE;
 
                 struct data_t *data = data_create(msg->entry->value->datasize);
                 memcpy(data->data, msg->entry->value->data, msg->entry->value->datasize);
 
-                msg->op_n = tree_skel_put(msg->entry->key, data);
+                char *key = strdup(msg->entry->key);
+
+                msg->op_n = tree_skel_put(key, data);
             }
             else{
                 msg->opcode = MESSAGE_T__OPCODE__OP_ERROR;
@@ -301,6 +314,7 @@ int invoke(MessageT *msg){
             break;
         case MESSAGE_T__OPCODE__OP_GETKEYS:
             if(msg->c_type == MESSAGE_T__C_TYPE__CT_NONE && tree_size(tree) > 0){
+                printf("getkeys request\n");
                 msg->opcode = MESSAGE_T__OPCODE__OP_GETKEYS + 1;
                 msg->c_type = MESSAGE_T__C_TYPE__CT_KEYS;
                 msg->n_keys = tree_size(tree);
@@ -314,6 +328,7 @@ int invoke(MessageT *msg){
             break;
         case MESSAGE_T__OPCODE__OP_GETVALUES: //OP_GETVALUES
             if(msg->c_type == MESSAGE_T__C_TYPE__CT_NONE && tree_size(tree) > 0){
+                printf("getvalues request\n");
                 msg->opcode = MESSAGE_T__OPCODE__OP_GETVALUES + 1;
                 msg->c_type = MESSAGE_T__C_TYPE__CT_VALUES;
                 msg->n_values = tree_size(tree);
@@ -346,6 +361,7 @@ int invoke(MessageT *msg){
             break;
         case MESSAGE_T__OPCODE__OP_VERIFY:                      // CHECK THIS LATER
             if(msg->c_type == MESSAGE_T__C_TYPE__CT_NONE){
+                printf("verify request\n");
                 msg->opcode = MESSAGE_T__OPCODE__OP_VERIFY + 1;
                 msg->c_type = MESSAGE_T__C_TYPE__CT_NONE;
                 msg->result = verify(msg->op_n);
@@ -434,7 +450,8 @@ static void child_watcher(zhandle_t *wzh, int type, int state, const char *zpath
 
         printf("Connected to next node in chain\n");
         free(data);
-    }
+    }else
+        zk_info->next_socket = -1;
     free(nextPath);
  
 }
